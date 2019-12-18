@@ -36,6 +36,7 @@ from utils.imutils import crop
 from utils.renderer import Renderer
 import config
 import constants
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoint', required=True, help='Path to pretrained checkpoint')
@@ -128,20 +129,42 @@ if __name__ == '__main__':
     pred_vertices = pred_vertices[0].cpu().numpy()
     img = img.permute(1,2,0).cpu().numpy()
 
-    
-    # Render parametric shape
-    img_shape = renderer(pred_vertices, camera_translation, img)
-    
-    # Render side views
-    aroundy = cv2.Rodrigues(np.array([0, np.radians(90.), 0]))[0]
-    center = pred_vertices.mean(axis=0)
-    rot_vertices = np.dot((pred_vertices - center), aroundy) + center
-    
-    # Render non-parametric shape
-    img_shape_side = renderer(rot_vertices, camera_translation, np.ones_like(img))
-
     outfile = args.img.split('.')[0] if args.outfile is None else args.outfile
 
+    # Plot and save results
+    plt.figure()
+    plt.axis('off')
+    plt.tight_layout()
+
+    subplot_count = 1
+    # plot image
+    plt.subplot(1, 2, subplot_count)
+    plt.imshow(np.squeeze(img))
+    subplot_count += 1
+
+    # plot GCN predicted verts
+    plt.subplot(1, 2, subplot_count)
+    plt.scatter(pred_vertices[:, 0],
+                pred_vertices[:, 1],
+                s=0.6)
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.gca().invert_yaxis()
+    subplot_count += 1
+
+    plt.savefig(outfile + "_verts_plot.png", bbox_inches='tight')
+    
+    # Render parametric shape
+    # img_shape = renderer(pred_vertices, camera_translation, img)
+    
+    # Render side views
+    # aroundy = cv2.Rodrigues(np.array([0, np.radians(90.), 0]))[0]
+    # center = pred_vertices.mean(axis=0)
+    # rot_vertices = np.dot((pred_vertices - center), aroundy) + center
+    
+    # Render non-parametric shape
+    # img_shape_side = renderer(rot_vertices, camera_translation, np.ones_like(img))
+
+
     # Save reconstructions
-    cv2.imwrite(outfile + '_shape.png', 255 * img_shape[:,:,::-1])
-    cv2.imwrite(outfile + '_shape_side.png', 255 * img_shape_side[:,:,::-1])
+    # cv2.imwrite(outfile + '_shape.png', 255 * img_shape[:,:,::-1])
+    # cv2.imwrite(outfile + '_shape_side.png', 255 * img_shape_side[:,:,::-1])
