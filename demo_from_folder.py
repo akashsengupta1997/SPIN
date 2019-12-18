@@ -137,7 +137,7 @@ if __name__ == '__main__':
     # renderer = Renderer(focal_length=constants.FOCAL_LENGTH, img_res=constants.IMG_RES,
     #                     faces=smpl.faces)
 
-    image_paths = [os.path.join(args.in_folder, f) for f in os.listdir(args.in_folder)
+    image_paths = [os.path.join(args.in_folder, f) for f in sorted(os.listdir(args.in_folder))
                    if f.endswith('.png')]
     print('Predicting on all png images in {}'.format(args.in_folder))
 
