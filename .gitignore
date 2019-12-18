@@ -122,3 +122,4 @@ data/*
 smplify/prior.py
 *.xml
 *.iml
+.DS_Store

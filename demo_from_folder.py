@@ -189,6 +189,7 @@ if __name__ == '__main__':
         plt.gca().invert_yaxis()
         subplot_count += 1
         plt.savefig(outfile + "_verts_plot.png", bbox_inches='tight')
+        plt.close()
 
         # Save verts as plyfile
         write_ply_file(outfile + '_verts.ply', pred_vertices, [255, 0, 0])
