@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('TkAgg')
 import torch
 from torchvision.transforms import Normalize
 import numpy as np
@@ -18,10 +20,11 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--checkpoint', default=None, help='Path to pretrained checkpoint')
-parser.add_argument('--in_folder', type=str, required=True, help='Path to input images folder.')
-parser.add_argument('--out_folder', type=str, default=None,
+parser.add_argument('-checkpoint', default=None, help='Path to pretrained checkpoint')
+parser.add_argument('-in_folder', type=str, required=True, help='Path to input images folder.')
+parser.add_argument('-out_folder', type=str, default=None,
                     help='Folder to save predictions in')
+parser.add_argument('--centred', action='store_true')
 
 
 def bbox_from_openpose(openpose_file, rescale=1.2, detection_thresh=0.2):
@@ -133,10 +136,6 @@ if __name__ == '__main__':
                 create_transl=False).to(device)
     model.eval()
 
-    # Setup renderer for visualization
-    # renderer = Renderer(focal_length=constants.FOCAL_LENGTH, img_res=constants.IMG_RES,
-    #                     faces=smpl.faces)
-
     image_paths = [os.path.join(args.in_folder, f) for f in sorted(os.listdir(args.in_folder))
                    if f.endswith('.png')]
     print('Predicting on all png images in {}'.format(args.in_folder))
@@ -144,8 +143,11 @@ if __name__ == '__main__':
     for image_path in image_paths:
         print("Image: ", image_path)
         # Preprocess input image and generate predictions
-        bbox_path = os.path.splitext(image_path)[0] + '_bb_coords.pkl'
-        assert os.path.exists(bbox_path), "Bounding boxes required for {}!".format(image_path)
+        if args.centred:
+            bbox_path = None
+        else:
+            bbox_path = os.path.splitext(image_path)[0] + '_bb_coords.pkl'
+            assert os.path.exists(bbox_path), "Bounding boxes required for {}!".format(image_path)
 
         # Preprocess input image and generate predictions
         img, norm_img = process_image(image_path, bbox_path, None,
@@ -168,7 +170,6 @@ if __name__ == '__main__':
         outfile = os.path.join(args.out_folder,
                                os.path.splitext(os.path.basename(image_path))[0])
         print('Saving to:', outfile)
-
         # Plot and save results
         plt.figure()
         plt.axis('off')
@@ -194,8 +195,15 @@ if __name__ == '__main__':
         # Save verts as plyfile
         write_ply_file(outfile + '_verts.ply', pred_vertices, [255, 0, 0])
 
+        # Save verts as pkl
+        with open(outfile + '_verts.pkl', 'wb') as f:
+            pickle.dump(pred_vertices, f, protocol=2)
+
         # Render parametric shape
-        # img_shape = renderer(pred_vertices, camera_translation, img)
+        # Setup renderer for visualization
+        renderer = Renderer(focal_length=constants.FOCAL_LENGTH, img_res=constants.IMG_RES,
+                            faces=smpl.faces)
+        img_shape = renderer(pred_vertices, camera_translation, img)
 
         # Render side views
         # aroundy = cv2.Rodrigues(np.array([0, np.radians(90.), 0]))[0]
@@ -206,5 +214,5 @@ if __name__ == '__main__':
         # img_shape_side = renderer(rot_vertices, camera_translation, np.ones_like(img))
 
         # Save reconstructions
-        # cv2.imwrite(outfile + '_shape.png', 255 * img_shape[:,:,::-1])
+        cv2.imwrite(outfile + '_shape.png', 255 * img_shape[:,:,::-1])
         # cv2.imwrite(outfile + '_shape_side.png', 255 * img_shape_side[:,:,::-1])

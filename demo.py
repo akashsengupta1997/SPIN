@@ -37,6 +37,8 @@ from utils.renderer import Renderer
 import config
 import constants
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoint', required=True, help='Path to pretrained checkpoint')
@@ -124,8 +126,10 @@ if __name__ == '__main__':
         pred_vertices = pred_output.vertices
         
     # Calculate camera parameters for rendering
+    print(pred_camera)
     camera_translation = torch.stack([pred_camera[:,1], pred_camera[:,2], 2*constants.FOCAL_LENGTH/(constants.IMG_RES * pred_camera[:,0] +1e-9)],dim=-1)
     camera_translation = camera_translation[0].cpu().numpy()
+    print(camera_translation)
     pred_vertices = pred_vertices[0].cpu().numpy()
     img = img.permute(1,2,0).cpu().numpy()
 
@@ -142,7 +146,7 @@ if __name__ == '__main__':
     plt.imshow(np.squeeze(img))
     subplot_count += 1
 
-    # plot GCN predicted verts
+    # plot predicted verts
     plt.subplot(1, 2, subplot_count)
     plt.scatter(pred_vertices[:, 0],
                 pred_vertices[:, 1],

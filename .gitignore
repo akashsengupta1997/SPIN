@@ -123,3 +123,6 @@ smplify/prior.py
 *.xml
 *.iml
 .DS_Store
+
+# Predictions
+predictions/*
