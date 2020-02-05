@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use('TkAgg')
+matplotlib.use('MacOSX')
 import torch
 from torchvision.transforms import Normalize
 import numpy as np
@@ -25,6 +25,8 @@ parser.add_argument('-in_folder', type=str, required=True, help='Path to input i
 parser.add_argument('-out_folder', type=str, default=None,
                     help='Folder to save predictions in')
 parser.add_argument('--centred', action='store_true')
+parser.add_argument('--save_visuals', action='store_true')
+parser.add_argument('--save_ply', action='store_true')
 
 
 def bbox_from_openpose(openpose_file, rescale=1.2, detection_thresh=0.2):
@@ -120,9 +122,13 @@ def write_ply_file(fpath, verts, colour):
         f.write(ply_header.format(num_verts))
         np.savetxt(f, verts_with_colour, '%f %f %f %d %d %d')
 
-
+# TODO this saves results for each image as a separate pkl file - want to save result for all frames in 1 pkl file for videos
+# can either write code here to acummulate different results into individual tensors OR write code at rendering end to do this
+# ideally will do number 1, or else will have 100s of pkl files...
+# just add an option like --video_pred that tells the function that input is a video with sequential frames OR WRITE NEW PREDICTION CODE FOR DEMO ON VIDEO.
 if __name__ == '__main__':
     args = parser.parse_args()
+    os.makedirs(args.out_folder, exist_ok=True)
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     # Load pretrained model
@@ -157,7 +163,6 @@ if __name__ == '__main__':
             pred_output = smpl(betas=pred_betas, body_pose=pred_rotmat[:, 1:],
                                global_orient=pred_rotmat[:, 0].unsqueeze(1), pose2rot=False)
             pred_vertices = pred_output.vertices
-
         # Calculate camera parameters for rendering
         camera_translation = torch.stack([pred_camera[:, 1], pred_camera[:, 2],
                                           2 * constants.FOCAL_LENGTH / (
@@ -165,54 +170,63 @@ if __name__ == '__main__':
                                                                           0] + 1e-9)], dim=-1)
         camera_translation = camera_translation[0].cpu().numpy()
         pred_vertices = pred_vertices[0].cpu().numpy()
+        pred_rotmat = pred_rotmat[0].cpu().numpy()
+        pred_betas = pred_betas[0].cpu().numpy()
+        pred_cam = pred_camera[0].cpu.numpy()
         img = img.permute(1, 2, 0).cpu().numpy()
 
         outfile = os.path.join(args.out_folder,
                                os.path.splitext(os.path.basename(image_path))[0])
         print('Saving to:', outfile)
-        # Plot and save results
-        plt.figure()
-        plt.axis('off')
-        plt.tight_layout()
-
-        subplot_count = 1
-        # plot image
-        plt.subplot(1, 2, subplot_count)
-        plt.imshow(np.squeeze(img))
-        subplot_count += 1
-
-        # plot SPIN predicted verts
-        plt.subplot(1, 2, subplot_count)
-        plt.scatter(pred_vertices[:, 0],
-                    pred_vertices[:, 1],
-                    s=0.6)
-        plt.gca().set_aspect('equal', adjustable='box')
-        plt.gca().invert_yaxis()
-        subplot_count += 1
-        plt.savefig(outfile + "_verts_plot.png", bbox_inches='tight')
-        plt.close()
-
         # Save verts as plyfile
-        write_ply_file(outfile + '_verts.ply', pred_vertices, [255, 0, 0])
+        if args.save_ply:
+            write_ply_file(outfile + '_verts.ply', pred_vertices, [255, 0, 0])
 
-        # Save verts as pkl
+        # Save predictions as pkl
+        pred_dict = {'verts': pred_vertices,
+                     'pose': pred_rotmat,
+                     'betas': pred_betas,
+                     'pred_cam': pred_camera}
         with open(outfile + '_verts.pkl', 'wb') as f:
-            pickle.dump(pred_vertices, f, protocol=2)
+            pickle.dump(pred_dict, f)
 
-        # Render parametric shape
-        # Setup renderer for visualization
-        renderer = Renderer(focal_length=constants.FOCAL_LENGTH, img_res=constants.IMG_RES,
-                            faces=smpl.faces)
-        img_shape = renderer(pred_vertices, camera_translation, img)
+        # Plot and save visuals
+        if args.save_visuals:
+            plt.figure()
+            plt.axis('off')
+            plt.tight_layout()
 
-        # Render side views
-        # aroundy = cv2.Rodrigues(np.array([0, np.radians(90.), 0]))[0]
-        # center = pred_vertices.mean(axis=0)
-        # rot_vertices = np.dot((pred_vertices - center), aroundy) + center
+            subplot_count = 1
+            # plot image
+            plt.subplot(1, 2, subplot_count)
+            plt.imshow(np.squeeze(img))
+            subplot_count += 1
 
-        # Render non-parametric shape
-        # img_shape_side = renderer(rot_vertices, camera_translation, np.ones_like(img))
+            # plot SPIN predicted verts
+            plt.subplot(1, 2, subplot_count)
+            plt.scatter(pred_vertices[:, 0],
+                        pred_vertices[:, 1],
+                        s=0.6)
+            plt.gca().set_aspect('equal', adjustable='box')
+            plt.gca().invert_yaxis()
+            subplot_count += 1
+            plt.savefig(outfile + "_verts_plot.png", bbox_inches='tight')
+            plt.close()
 
-        # Save reconstructions
-        cv2.imwrite(outfile + '_shape.png', 255 * img_shape[:,:,::-1])
-        # cv2.imwrite(outfile + '_shape_side.png', 255 * img_shape_side[:,:,::-1])
+            # Render parametric shape
+            # Setup renderer for visualization
+            renderer = Renderer(focal_length=constants.FOCAL_LENGTH, img_res=constants.IMG_RES,
+                                faces=smpl.faces)
+            img_shape = renderer(pred_vertices, camera_translation, img)
+
+            # Render side views
+            aroundy = cv2.Rodrigues(np.array([0, np.radians(90.), 0]))[0]
+            center = pred_vertices.mean(axis=0)
+            rot_vertices = np.dot((pred_vertices - center), aroundy) + center
+
+            # Render non-parametric shape
+            img_shape_side = renderer(rot_vertices, camera_translation, np.ones_like(img))
+
+            # Save reconstructions
+            cv2.imwrite(outfile + '_shape.png', 255 * img_shape[:,:,::-1])
+            cv2.imwrite(outfile + '_shape_side.png', 255 * img_shape_side[:,:,::-1])

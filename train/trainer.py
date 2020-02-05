@@ -172,7 +172,9 @@ class Trainer(BaseTrainer):
                                                    translation=pred_cam_t,
                                                    focal_length=self.focal_length,
                                                    camera_center=camera_center)
-        # Normalize keypoints to [-1,1]
+        # Normalize keypoints to [-1,1] - don't need to do translation normalisation since
+        # pred_cam_t translation is already normalised
+        # i.e. pred_keypoints_2d are in [-res/2, res/2] space
         pred_keypoints_2d = pred_keypoints_2d / (self.options.img_res / 2.)
 
         if self.options.run_smplify:
