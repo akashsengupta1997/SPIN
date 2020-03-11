@@ -11,6 +11,7 @@ import config
 import constants
 from models import hmr, SMPL
 from utils.pose_utils import compute_similarity_transform_batch
+from utils.geometry import orthographic_project_torch, undo_keypoint_normalisation
 from datasets.sports_videos_eval_dataset import SportsVideosEvalDataset
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
@@ -35,6 +36,10 @@ def evaluate_single_in_multitasknet_sports_videos(model,
 
     smpl = SMPL(config.SMPL_MODEL_DIR, batch_size=1)
     smpl.to(device)
+    smpl_male = SMPL(config.SMPL_MODEL_DIR, batch_size=1, gender='male')
+    smpl_male.to(device)
+    smpl_female = SMPL(config.SMPL_MODEL_DIR, batch_size=1, gender='female')
+    smpl_female.to(device)
 
     if 'pve' in metrics:
         pve_sum = 0.0
@@ -68,14 +73,27 @@ def evaluate_single_in_multitasknet_sports_videos(model,
 
         pred_rotmat, pred_betas, pred_camera = model(input)
         pred_output = smpl(betas=pred_betas, body_pose=pred_rotmat[:, 1:],
-                                   global_orient=pred_rotmat[:, 0].unsqueeze(1), pose2rot=False)
-        pred_vertices = pred_output.vertices.cpu().detach().numpy()
+                           global_orient=pred_rotmat[:, 0].unsqueeze(1), pose2rot=False)
+        pred_vertices = pred_output.vertices
+        pred_vertices_projected2d = orthographic_project_torch(pred_vertices, pred_camera)
+        pred_vertices_projected2d = undo_keypoint_normalisation(pred_vertices_projected2d, input.shape[-1])
         pred_reposed_smpl_output = smpl(betas=pred_betas)
-        pred_reposed_vertices = pred_reposed_smpl_output.vertices.cpu().detach().numpy()
+        pred_reposed_vertices = pred_reposed_smpl_output.vertices
 
-        target_reposed_smpl_output = smpl(betas=target_shape)
-        target_reposed_vertices = target_reposed_smpl_output.vertices.cpu().detach().numpy()
-        target_vertices = target_vertices.numpy()
+        target_gender = samples_batch['gender'][0]
+        if target_gender == 'm':
+            target_reposed_smpl_output = smpl_male(betas=target_shape)
+        elif target_gender == 'f':
+            target_reposed_smpl_output = smpl_female(betas=target_shape)
+        target_reposed_vertices = target_reposed_smpl_output.vertices
+
+        # Numpy-fying
+        target_vertices = target_vertices.cpu().detach().numpy()
+        target_reposed_vertices = target_reposed_vertices.cpu().detach().numpy()
+
+        pred_vertices = pred_vertices.cpu().detach().numpy()
+        pred_vertices_projected2d = pred_vertices_projected2d.cpu().detach().numpy()
+        pred_reposed_vertices = pred_reposed_vertices.cpu().detach().numpy()
 
         if 'pve' in metrics:
             pve_batch = np.linalg.norm(pred_vertices - target_vertices,
@@ -110,35 +128,38 @@ def evaluate_single_in_multitasknet_sports_videos(model,
 
         # Visualise
         if batch_num % vis_every_n_batches == 0:
-            frame_paths = samples_batch['frame_path']
             vis_imgs = samples_batch['vis_img'].numpy()
             vis_imgs = np.transpose(vis_imgs, [0, 2, 3, 1])
 
             for i in range(1):
                 plt.figure(figsize=(12, 8))
                 plt.subplot(231)
-                plt.imshow(cv2.cvtColor(vis_imgs[i], cv2.COLOR_BGR2RGB))
+                plt.imshow(vis_imgs[i])
 
                 plt.subplot(232)
-                plt.scatter(pred_vertices[i, :, 0], pred_vertices[i, :, 1], s=0.2, c='r')
-                plt.scatter(target_vertices[i, :, 0], target_vertices[i, :, 1], s=0.1, c='b')
-                plt.gca().invert_yaxis()
-                plt.gca().set_aspect('equal', adjustable='box')
+                plt.imshow(vis_imgs[i])
+                plt.scatter(pred_vertices_projected2d[i, :, 0], pred_vertices_projected2d[i, :, 1], s=0.1, c='r')
 
                 plt.subplot(233)
-                plt.scatter(pred_vertices_pa[i, :, 0], pred_vertices_pa[i, :, 1], s=0.2, c='r')
                 plt.scatter(target_vertices[i, :, 0], target_vertices[i, :, 1], s=0.1, c='b')
+                plt.scatter(pred_vertices[i, :, 0], pred_vertices[i, :, 1], s=0.05, c='r')
                 plt.gca().invert_yaxis()
                 plt.gca().set_aspect('equal', adjustable='box')
 
                 plt.subplot(234)
-                plt.scatter(pred_reposed_vertices[i, :, 0], pred_reposed_vertices[i, :, 1], s=0.2, c='r')
-                plt.scatter(target_reposed_vertices[i, :, 0], target_reposed_vertices[i, :, 1], s=0.1, c='b')
+                plt.scatter(target_vertices[i, :, 0], target_vertices[i, :, 1], s=0.1, c='b')
+                plt.scatter(pred_vertices_pa[i, :, 0], pred_vertices_pa[i, :, 1], s=0.05, c='r')
+                plt.gca().invert_yaxis()
                 plt.gca().set_aspect('equal', adjustable='box')
 
                 plt.subplot(235)
-                plt.scatter(pred_reposed_vertices_pa[i, :, 0], pred_reposed_vertices_pa[i, :, 1], s=0.2, c='r')
                 plt.scatter(target_reposed_vertices[i, :, 0], target_reposed_vertices[i, :, 1], s=0.1, c='b')
+                plt.scatter(pred_reposed_vertices[i, :, 0], pred_reposed_vertices[i, :, 1], s=0.05, c='r')
+                plt.gca().set_aspect('equal', adjustable='box')
+
+                plt.subplot(236)
+                plt.scatter(target_reposed_vertices[i, :, 0], target_reposed_vertices[i, :, 1], s=0.1, c='b')
+                plt.scatter(pred_reposed_vertices_pa[i, :, 0], pred_reposed_vertices_pa[i, :, 1], s=0.05, c='r')
                 plt.gca().set_aspect('equal', adjustable='box')
 
                 # plt.show()
@@ -189,6 +210,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Device
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     model = hmr(config.SMPL_MEAN_PARAMS).to(device)
@@ -197,13 +220,14 @@ if __name__ == '__main__':
     model.eval()
 
     # Setup evaluation dataset
-    dataset_path = '/scratch/as2562/datasets/sports_videos_smpl/draft_dataset1'
+    dataset_path = '/scratch2/as2562/datasets/sports_videos_smpl/draft_dataset1'
     dataset = SportsVideosEvalDataset(dataset_path, img_wh=constants.IMG_RES)
+    print("Eval examples found:", len(dataset))
 
     # Metrics
     metrics = ['pve', 'pve-t', 'pve_pa', 'pve-t_pa']
 
-    save_path = 'evaluations/sports_videos_draft_dataset1'
+    save_path = '/data/cvfs/as2562/SPIN/evaluations/sports_videos_draft_dataset1'
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 

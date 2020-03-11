@@ -17,7 +17,9 @@ class SportsVideosEvalDataset(Dataset):
         self.frame_paths = data['frames_paths']
         self.vertices = data['vertices']
         self.body_shapes = data['shapes']
-        assert len(self.frame_paths) == len(self.vertices) == len(self.body_shapes)
+        self.genders = data['genders']
+
+        assert len(self.frame_paths) == len(self.vertices) == len(self.body_shapes) == len(self.genders)
 
         self.img_wh = img_wh
         self.normalize_img = Normalize(mean=constants.IMG_NORM_MEAN, std=constants.IMG_NORM_STD)
@@ -31,13 +33,14 @@ class SportsVideosEvalDataset(Dataset):
 
         # Inputs
         frame_path = self.frame_paths[index]
-        img = cv2.imread(frame_path)
+        img = cv2.cvtColor(cv2.imread(frame_path), cv2.COLOR_BGR2RGB)
         img = cv2.resize(img, (self.img_wh, self.img_wh), interpolation=cv2.INTER_LINEAR)
         img = np.transpose(img, [2, 0, 1])/255.0
 
         # Targets
         vertices = self.vertices[index]
         shape = self.body_shapes[index]
+        gender = self.genders[index]
 
         img = torch.from_numpy(img).float()
         vertices = torch.from_numpy(vertices).float()
@@ -50,4 +53,5 @@ class SportsVideosEvalDataset(Dataset):
                 'vis_img': img,
                 'shape': shape,
                 'vertices': vertices,
-                'frame_path': frame_path}
+                'frame_path': frame_path,
+                'gender': gender}
