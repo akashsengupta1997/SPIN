@@ -45,28 +45,40 @@ def evaluate_single_in_multitasknet_h36m(model,
 
     if 'pve' in metrics:
         pve_sum = 0.0
+        pve_per_frame = []
 
     if 'pve_pa' in metrics:
         pve_pa_sum = 0.0
+        pve_pa_per_frame = []
 
     if 'pve-t' in metrics:
         pvet_sum = 0.0
+        pvet_per_frame = []
 
     if 'pve-t_pa' in metrics:
         pvet_pa_sum = 0.0
+        pvet_pa_per_frame = []
 
     if 'mpjpe' in metrics:
         mpjpe_sum = 0.0
+        mpjpe_per_frame = []
 
     if 'j3d_rec_err' in metrics:
         j3d_rec_err_sum = 0.0
+        j3d_rec_err_per_frame = []
 
     if 'pve_2d' in metrics:
         pve_2d_sum = 0.0
+        pve_2d_per_frame = []
 
     if 'pve_2d_pa' in metrics:
         pve_2d_pa_sum = 0.0
+        pve_2d_pa_per_frame = []
 
+    fname_per_frame = []
+    pose_per_frame = []
+    shape_per_frame = []
+    cam_per_frame = []
     num_samples = 0
     num_vertices = 6890
     num_joints3d = 14
@@ -111,63 +123,77 @@ def evaluate_single_in_multitasknet_h36m(model,
         pred_vertices_projected2d = pred_vertices_projected2d.cpu().detach().numpy()
         pred_reposed_vertices = pred_reposed_vertices.cpu().detach().numpy()
         pred_joints_h36mlsp = pred_joints_h36mlsp.cpu().detach().numpy()
+        pred_rotmat = pred_rotmat.cpu().detach().numpy()
+        pred_betas = pred_betas.cpu().detach().numpy()
+        pred_camera = pred_camera.cpu().detach().numpy()
 
         # ------------------------------- METRICS -------------------------------
         if 'pve' in metrics:
             pve_batch = np.linalg.norm(pred_vertices - target_vertices,
-                                       axis=-1)  # (1, 6890)
+                                       axis=-1)  # (bs, 6890)
             pve_sum += np.sum(pve_batch)  # scalar
+            pve_per_frame.append(np.mean(pve_batch, axis=-1))
 
-        # Procrustes analysis
+            # Procrustes analysis
         if 'pve_pa' in metrics:
             pred_vertices_pa = compute_similarity_transform_batch(pred_vertices, target_vertices)
             pve_pa_batch = np.linalg.norm(pred_vertices_pa - target_vertices, axis=-1)  # (bs, 6890)
             pve_pa_sum += np.sum(pve_pa_batch)  # scalar
+            pve_pa_per_frame.append(np.mean(pve_pa_batch, axis=-1))
 
         if 'pve-t' in metrics:
             pvet_batch = np.linalg.norm(pred_reposed_vertices - target_reposed_vertices, axis=-1)
             pvet_sum += np.sum(pvet_batch)
+            pvet_per_frame.append(np.mean(pvet_batch, axis=-1))
 
-        # Procrustes analysis
+            # Procrustes analysis
         if 'pve-t_pa' in metrics:
             pred_reposed_vertices_pa = compute_similarity_transform_batch(pred_reposed_vertices,
                                                                           target_reposed_vertices)
             pvet_pa_batch = np.linalg.norm(pred_reposed_vertices_pa - target_reposed_vertices, axis=-1)  # (bs, 6890)
             pvet_pa_sum += np.sum(pvet_pa_batch)  # scalar
+            pvet_pa_per_frame.append(np.mean(pvet_pa_batch, axis=-1))
 
         if 'mpjpe' in metrics:
             mpjpe_batch = np.linalg.norm(pred_joints_h36mlsp - target_joints_h36mlsp, axis=-1)  # (bs, 14)
             mpjpe_sum += np.sum(mpjpe_batch)
+            mpjpe_per_frame.append(np.mean(mpjpe_batch, axis=-1))
 
-        # Procrustes analysis
+            # Procrustes analysis
         if 'j3d_rec_err' in metrics:
             pred_joints_h36mlsp_pa = compute_similarity_transform_batch(pred_joints_h36mlsp, target_joints_h36mlsp)
             j3d_rec_err_batch = np.linalg.norm(pred_joints_h36mlsp_pa - target_joints_h36mlsp, axis=-1)  # (bs, 14)
             j3d_rec_err_sum += np.sum(j3d_rec_err_batch)
+            j3d_rec_err_per_frame.append(np.mean(j3d_rec_err_batch, axis=-1))
 
         if 'pve_2d' in metrics:
             pred_vertices_2d = pred_vertices[:, :, :2]
             target_vertices_2d = target_vertices[:, :, :2]
             pve_2d_batch = np.linalg.norm(pred_vertices_2d - target_vertices_2d, axis=-1)  # (bs, 6890)
             pve_2d_sum += np.sum(pve_2d_batch)
+            pve_2d_per_frame.append(np.mean(pve_2d_batch, axis=-1))
 
-        # Procrustes analysis
+            # Procrustes analysis
         if 'pve_2d_pa' in metrics:
             pred_vertices_pa = compute_similarity_transform_batch(pred_vertices, target_vertices)
             pred_vertices_2d_pa = pred_vertices_pa[:, :, :2]
             target_vertices_2d = target_vertices[:, :, :2]
             pve_2d_pa_batch = np.linalg.norm(pred_vertices_2d_pa - target_vertices_2d, axis=-1)  # (bs, 6890)
             pve_2d_pa_sum += np.sum(pve_2d_pa_batch)
+            pve_2d_pa_per_frame.append(np.mean(pve_2d_pa_batch, axis=-1))
 
         num_samples += target_pose.shape[0]
+        fnames = samples_batch['fname']
+        fname_per_frame.append(fnames)
+        pose_per_frame.append(pred_rotmat)
+        shape_per_frame.append(pred_betas)
+        cam_per_frame.append(pred_camera)
 
         # ------------------------------- VISUALISE -------------------------------
         if vis_every_n_batches is not None:
             if batch_num % vis_every_n_batches == 0:
                 vis_imgs = samples_batch['vis_img'].numpy()
                 vis_imgs = np.transpose(vis_imgs, [0, 2, 3, 1])
-
-                fnames = samples_batch['fname']
 
                 for i in range(1):  # TODO this loop is pointless since am only visualising first element of batch
                     plt.figure(figsize=(16, 12))
@@ -218,36 +244,65 @@ def evaluate_single_in_multitasknet_h36m(model,
                     plt.savefig(save_fig_path, bbox_inches='tight')
                     plt.close()
 
+    # ------------------------------- DISPLAY METRICS AND SAVE PER-FRAME METRICS -------------------------------
+    fname_per_frame = np.concatenate(fname_per_frame, axis=0)
+    np.save(os.path.join(save_path, 'fname_per_frame.npy'), fname_per_frame)
+
+    pose_per_frame = np.concatenate(pose_per_frame, axis=0)
+    np.save(os.path.join(save_path, 'pose_per_frame.npy'), pose_per_frame)
+
+    shape_per_frame = np.concatenate(shape_per_frame, axis=0)
+    np.save(os.path.join(save_path, 'shape_per_frame.npy'), shape_per_frame)
+
+    cam_per_frame = np.concatenate(cam_per_frame, axis=0)
+    np.save(os.path.join(save_path, 'cam_per_frame.npy'), cam_per_frame)
+
     if 'pve' in metrics:
         pve = pve_sum / (num_samples * num_vertices)
+        pve_per_frame = np.concatenate(pve_per_frame, axis=0)
+        np.save(os.path.join(save_path, 'pve_per_frame.npy'), pve_per_frame)
         print('PVE: {:.5f}'.format(pve))
 
     if 'pve_pa' in metrics:
         pve_pa = pve_pa_sum / (num_samples * num_vertices)
+        pve_pa_per_frame = np.concatenate(pve_pa_per_frame, axis=0)
+        np.save(os.path.join(save_path, 'pve_pa_per_frame.npy'), pve_pa_per_frame)
         print('PVE PA: {:.5f}'.format(pve_pa))
 
     if 'pve-t' in metrics:
         pvet = pvet_sum / (num_samples * num_vertices)
+        pvet_per_frame = np.concatenate(pvet_per_frame, axis=0)
+        np.save(os.path.join(save_path, 'pvet_per_frame.npy'), pvet_per_frame)
         print('PVE-T: {:.5f}'.format(pvet))
 
     if 'pve-t_pa' in metrics:
         pvet_pa = pvet_pa_sum / (num_samples * num_vertices)
+        pvet_pa_per_frame = np.concatenate(pvet_pa_per_frame, axis=0)
+        np.save(os.path.join(save_path, 'pvet_pa_per_frame.npy'), pvet_pa_per_frame)
         print('PVE-T PA: {:.5f}'.format(pvet_pa))
 
     if 'mpjpe' in metrics:
         mpjpe = mpjpe_sum / (num_samples * num_joints3d)
+        mpjpe_per_frame = np.concatenate(mpjpe_per_frame, axis=0)
+        np.save(os.path.join(save_path, 'mpjpe_per_frame.npy'), mpjpe_per_frame)
         print('MPJPE: {:.5f}'.format(mpjpe))
 
     if 'j3d_rec_err' in metrics:
         j3d_rec_err = j3d_rec_err_sum / (num_samples * num_joints3d)
+        j3d_rec_err_per_frame = np.concatenate(j3d_rec_err_per_frame, axis=0)
+        np.save(os.path.join(save_path, 'j3d_rec_err_per_frame.npy'), j3d_rec_err_per_frame)
         print('Rec Err: {:.5f}'.format(j3d_rec_err))
 
     if 'pve_2d' in metrics:
         pve_2d = pve_2d_sum / (num_samples * num_vertices)
+        pve_2d_per_frame = np.concatenate(pve_2d_per_frame, axis=0)
+        np.save(os.path.join(save_path, 'pve_2d_per_frame.npy'), pve_2d_per_frame)
         print('PVE 2D: {:.5f}'.format(pve_2d))
 
     if 'pve_2d_pa' in metrics:
         pve_2d_pa = pve_2d_pa_sum / (num_samples * num_vertices)
+        pve_2d_pa_per_frame = np.concatenate(pve_2d_pa_per_frame, axis=0)
+        np.save(os.path.join(save_path, 'pve_2d_pa_per_frame.npy'), pve_2d_pa_per_frame)
         print('PVE 2D PA: {:.5f}'.format(pve_2d_pa))
 
 

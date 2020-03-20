@@ -1,5 +1,7 @@
 """
-Runs SPIN on cropped and centred input video frames and save results in one pickle file.
+Runs SPIN on cropped and centres video frames and stores results in a pkl file.
+Basically, this script is to run SPIN on cropped frames from my sports videos dataset.
+For each sport, saves results in a separate spin_results directory within the sports videos dataset file structure.
 """
 import torch
 from torchvision.transforms import Normalize
