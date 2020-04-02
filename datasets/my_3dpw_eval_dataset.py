@@ -46,6 +46,7 @@ class PW3DEvalDataset(Dataset):
         # Targets
         pose = self.pose[index]
         shape = self.shape[index]
+        gender = self.gender[index]
 
         img = torch.from_numpy(img).float()
         pose = torch.from_numpy(pose).float()
@@ -57,7 +58,8 @@ class PW3DEvalDataset(Dataset):
                 'vis_img': img,
                 'pose': pose,
                 'shape': shape,
-                'fname': fname}
+                'fname': fname,
+                'gender': gender}
 
 
 
