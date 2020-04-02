@@ -86,7 +86,7 @@ def scale_and_translation_transform_batch(P, T):
     """
     P_mean = np.mean(P, axis=1, keepdims=True)
     P_trans = P - P_mean
-    P_scale = np.sqrt(np.sum(P_trans, axis=(1, 2)) / P.shape[1])
+    P_scale = np.sqrt(np.sum(P_trans, axis=(1, 2), keepdims=True) / P.shape[1])
     P_normalised = P_trans / P_scale
 
     T_mean = np.mean(T, axis=1, keepdims=True)
