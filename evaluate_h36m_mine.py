@@ -26,8 +26,7 @@ def evaluate_single_in_multitasknet_h36m(model,
                                          vis_save_path,
                                          num_workers=4,
                                          pin_memory=True,
-                                         vis_every_n_batches=200,
-                                         smpl_model=None):
+                                         vis_every_n_batches=200):
 
     eval_dataloader = DataLoader(eval_dataset,
                                  batch_size=batch_size,
@@ -36,9 +35,8 @@ def evaluate_single_in_multitasknet_h36m(model,
                                  num_workers=num_workers,
                                  pin_memory=pin_memory)
 
-    if smpl_model is None:
-        smpl_model = SMPL(config.SMPL_MODEL_DIR, batch_size=batch_size)
-        smpl_model.to(device)
+    smpl_model = SMPL(config.SMPL_MODEL_DIR, batch_size=batch_size)
+    smpl_model.to(device)
 
     J_regressor = torch.from_numpy(np.load(config.JOINT_REGRESSOR_H36M)).float()
     J_regressor_batch = J_regressor[None, :].expand(batch_size, -1, -1).to(device)

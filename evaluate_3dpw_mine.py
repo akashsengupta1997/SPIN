@@ -25,8 +25,7 @@ def evaluate_single_in_multitasknet_3dpw(model,
                                          vis_save_path,
                                          num_workers=4,
                                          pin_memory=True,
-                                         vis_every_n_batches=1000,
-                                         smpl_model=None):
+                                         vis_every_n_batches=1000):
 
     eval_dataloader = DataLoader(eval_dataset,
                                  batch_size=1,
@@ -116,12 +115,12 @@ def evaluate_single_in_multitasknet_3dpw(model,
 
         # ------------------------------- PREDICTIONS -------------------------------
         pred_rotmat, pred_betas, pred_camera = model(input)
-        pred_output = smpl_model(betas=pred_betas, body_pose=pred_rotmat[:, 1:],
-                                 global_orient=pred_rotmat[:, 0].unsqueeze(1), pose2rot=False)
+        pred_output = smpl(betas=pred_betas, body_pose=pred_rotmat[:, 1:],
+                           global_orient=pred_rotmat[:, 0].unsqueeze(1), pose2rot=False)
         pred_vertices = pred_output.vertices
         pred_vertices_projected2d = orthographic_project_torch(pred_vertices, pred_camera)
         pred_vertices_projected2d = undo_keypoint_normalisation(pred_vertices_projected2d, input.shape[-1])
-        pred_reposed_smpl_output = smpl_model(betas=pred_betas)
+        pred_reposed_smpl_output = smpl(betas=pred_betas)
         pred_reposed_vertices = pred_reposed_smpl_output.vertices
 
         pred_joints_h36m = torch.matmul(J_regressor_batch, pred_vertices)
