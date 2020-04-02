@@ -16,8 +16,6 @@ from utils.pose_utils import compute_similarity_transform_batch
 from utils.geometry import orthographic_project_torch, undo_keypoint_normalisation
 from datasets.my_3dpw_eval_dataset import PW3DEvalDataset
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 def evaluate_single_in_multitasknet_3dpw(model,

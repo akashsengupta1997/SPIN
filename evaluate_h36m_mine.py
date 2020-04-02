@@ -10,7 +10,8 @@ import cv2
 import config
 import constants
 from models import hmr, SMPL
-from utils.pose_utils import compute_similarity_transform_batch
+from utils.pose_utils import compute_similarity_transform_batch, \
+    scale_and_translation_transform_batch
 from utils.geometry import orthographic_project_torch, undo_keypoint_normalisation
 from datasets.my_h36m_eval_dataset import H36MEvalDataset
 
@@ -45,6 +46,10 @@ def evaluate_single_in_multitasknet_h36m(model,
         pve_sum = 0.0
         pve_per_frame = []
 
+    if 'pve_scale_corrected' in metrics:
+        pve_scale_corrected_sum = 0.0
+        pve_scale_corrected_per_frame = []
+
     if 'pve_pa' in metrics:
         pve_pa_sum = 0.0
         pve_pa_per_frame = []
@@ -53,13 +58,17 @@ def evaluate_single_in_multitasknet_h36m(model,
         pvet_sum = 0.0
         pvet_per_frame = []
 
-    if 'pve-t_pa' in metrics:
-        pvet_pa_sum = 0.0
-        pvet_pa_per_frame = []
+    if 'pve-t_scale_corrected' in metrics:
+        pvet_scale_corrected_sum = 0.0
+        pvet_scale_corrected_per_frame = []
 
     if 'mpjpe' in metrics:
         mpjpe_sum = 0.0
         mpjpe_per_frame = []
+
+    if 'mpjpe_scale_corrected' in metrics:
+        mpjpe_scale_corrected_sum = 0.0
+        mpjpe_scale_corrected_per_frame = []
 
     if 'j3d_rec_err' in metrics:
         j3d_rec_err_sum = 0.0
@@ -68,6 +77,10 @@ def evaluate_single_in_multitasknet_h36m(model,
     if 'pve_2d' in metrics:
         pve_2d_sum = 0.0
         pve_2d_per_frame = []
+
+    if 'pve_2d_scale_corrected' in metrics:
+        pve_2d_scale_corrected_sum = 0.0
+        pve_2d_scale_corrected_per_frame = []
 
     if 'pve_2d_pa' in metrics:
         pve_2d_pa_sum = 0.0
@@ -132,7 +145,16 @@ def evaluate_single_in_multitasknet_h36m(model,
             pve_sum += np.sum(pve_batch)  # scalar
             pve_per_frame.append(np.mean(pve_batch, axis=-1))
 
-            # Procrustes analysis
+        # Scale and translation correction
+        if 'pve_scale_corrected' in metrics:
+            pred_vertices_scale_corrected = scale_and_translation_transform_batch(pred_vertices,
+                                                                                  target_vertices)
+            pve_scale_corrected_batch = np.linalg.norm(pred_vertices_scale_corrected - target_vertices,
+                                                       axis=-1)  # (bs, 6890)
+            pve_scale_corrected_sum += np.sum(pve_scale_corrected_batch)  # scalar
+            pve_scale_corrected_per_frame.append(np.mean(pve_scale_corrected_batch, axis=-1))
+
+        # Procrustes analysis
         if 'pve_pa' in metrics:
             pred_vertices_pa = compute_similarity_transform_batch(pred_vertices, target_vertices)
             pve_pa_batch = np.linalg.norm(pred_vertices_pa - target_vertices, axis=-1)  # (bs, 6890)
@@ -144,20 +166,30 @@ def evaluate_single_in_multitasknet_h36m(model,
             pvet_sum += np.sum(pvet_batch)
             pvet_per_frame.append(np.mean(pvet_batch, axis=-1))
 
-            # Procrustes analysis
-        if 'pve-t_pa' in metrics:
-            pred_reposed_vertices_pa = compute_similarity_transform_batch(pred_reposed_vertices,
-                                                                          target_reposed_vertices)
-            pvet_pa_batch = np.linalg.norm(pred_reposed_vertices_pa - target_reposed_vertices, axis=-1)  # (bs, 6890)
-            pvet_pa_sum += np.sum(pvet_pa_batch)  # scalar
-            pvet_pa_per_frame.append(np.mean(pvet_pa_batch, axis=-1))
+        # Scale and translation correction
+        if 'pve-t_scale_corrected' in metrics:
+            pred_reposed_vertices_sc = scale_and_translation_transform_batch(pred_reposed_vertices,
+                                                                             target_reposed_vertices)
+            pvet_scale_corrected_batch = np.linalg.norm(pred_reposed_vertices_sc - target_reposed_vertices,
+                                                        axis=-1)  # (bs, 6890)
+            pvet_scale_corrected_sum += np.sum(pvet_scale_corrected_batch)  # scalar
+            pvet_scale_corrected_per_frame.append(np.mean(pvet_scale_corrected_batch, axis=-1))
 
         if 'mpjpe' in metrics:
             mpjpe_batch = np.linalg.norm(pred_joints_h36mlsp - target_joints_h36mlsp, axis=-1)  # (bs, 14)
             mpjpe_sum += np.sum(mpjpe_batch)
             mpjpe_per_frame.append(np.mean(mpjpe_batch, axis=-1))
 
-            # Procrustes analysis
+        # Scale and translation correction
+        if 'mpjpe_scale_corrected' in metrics:
+            pred_joints_h36mlsp_sc = scale_and_translation_transform_batch(pred_joints_h36mlsp,
+                                                                           target_joints_h36mlsp)
+            mpjpe_scale_corrected_batch = np.linalg.norm(pred_joints_h36mlsp_sc - target_joints_h36mlsp,
+                                                         axis=-1)  # (bs, 6890)
+            mpjpe_scale_corrected_sum += np.sum(mpjpe_scale_corrected_batch)  # scalar
+            mpjpe_scale_corrected_per_frame.append(np.mean(mpjpe_scale_corrected_batch, axis=-1))
+
+        # Procrustes analysis
         if 'j3d_rec_err' in metrics:
             pred_joints_h36mlsp_pa = compute_similarity_transform_batch(pred_joints_h36mlsp, target_joints_h36mlsp)
             j3d_rec_err_batch = np.linalg.norm(pred_joints_h36mlsp_pa - target_joints_h36mlsp, axis=-1)  # (bs, 14)
@@ -171,7 +203,18 @@ def evaluate_single_in_multitasknet_h36m(model,
             pve_2d_sum += np.sum(pve_2d_batch)
             pve_2d_per_frame.append(np.mean(pve_2d_batch, axis=-1))
 
-            # Procrustes analysis
+        # Scale and translation correction
+        if 'pve_2d_scale_corrected' in metrics:
+            pred_vertices_sc = scale_and_translation_transform_batch(pred_vertices,
+                                                                     target_vertices)
+            pred_vertices_2d_sc = pred_vertices_sc[:, :, :2]
+            target_vertices_2d = target_vertices[:, :, :2]
+            pve_2d_sc_batch = np.linalg.norm(pred_vertices_2d_sc - target_vertices_2d,
+                                             axis=-1)  # (bs, 6890)
+            pve_2d_scale_corrected_sum += np.sum(pve_2d_sc_batch)
+            pve_2d_scale_corrected_per_frame.append(np.mean(pve_2d_sc_batch, axis=-1))
+
+        # Procrustes analysis
         if 'pve_2d_pa' in metrics:
             pred_vertices_pa = compute_similarity_transform_batch(pred_vertices, target_vertices)
             pred_vertices_2d_pa = pred_vertices_pa[:, :, :2]
@@ -209,14 +252,23 @@ def evaluate_single_in_multitasknet_h36m(model,
                     plt.gca().set_aspect('equal', adjustable='box')
 
                     plt.subplot(346)
+                    plt.scatter(target_vertices[i, :, 0], target_vertices[i, :, 1], s=0.1,
+                                c='b')
+                    plt.scatter(pred_vertices_scale_corrected[i, :, 0],
+                                pred_vertices_scale_corrected[i, :, 1], s=0.1,
+                                c='r')
+                    plt.gca().invert_yaxis()
+                    plt.gca().set_aspect('equal', adjustable='box')
+
+                    plt.subplot(347)
                     plt.scatter(target_vertices[i, :, 0], target_vertices[i, :, 1], s=0.1, c='b')
                     plt.scatter(pred_vertices_pa[i, :, 0], pred_vertices_pa[i, :, 1], s=0.1, c='r')
                     plt.gca().invert_yaxis()
                     plt.gca().set_aspect('equal', adjustable='box')
 
-                    plt.subplot(347)
+                    plt.subplot(348)
                     plt.scatter(target_reposed_vertices[i, :, 0], target_reposed_vertices[i, :, 1], s=0.1, c='b')
-                    plt.scatter(pred_reposed_vertices_pa[i, :, 0], pred_reposed_vertices_pa[i, :, 1], s=0.1, c='r')
+                    plt.scatter(pred_reposed_vertices_sc[i, :, 0], pred_reposed_vertices_sc[i, :, 1], s=0.1, c='r')
                     plt.gca().set_aspect('equal', adjustable='box')
 
                     plt.subplot(349)
@@ -229,6 +281,19 @@ def evaluate_single_in_multitasknet_h36m(model,
                     plt.gca().set_aspect('equal', adjustable='box')
 
                     plt.subplot(3, 4, 10)
+                    for j in range(num_joints3d):
+                        plt.scatter(pred_joints_h36mlsp_sc[i, j, 0],
+                                    pred_joints_h36mlsp_sc[i, j, 1], c='r')
+                        plt.scatter(target_joints_h36mlsp[i, j, 0],
+                                    target_joints_h36mlsp[i, j, 1], c='b')
+                        plt.text(pred_joints_h36mlsp_sc[i, j, 0],
+                                 pred_joints_h36mlsp_sc[i, j, 1], s=str(j))
+                        plt.text(target_joints_h36mlsp[i, j, 0],
+                                 target_joints_h36mlsp[i, j, 1], s=str(j))
+                    plt.gca().invert_yaxis()
+                    plt.gca().set_aspect('equal', adjustable='box')
+
+                    plt.subplot(3, 4, 11)
                     for j in range(num_joints3d):
                         plt.scatter(pred_joints_h36mlsp_pa[i, j, 0], pred_joints_h36mlsp_pa[i, j, 1], c='r')
                         plt.scatter(target_joints_h36mlsp[i, j, 0], target_joints_h36mlsp[i, j, 1], c='b')
@@ -261,6 +326,13 @@ def evaluate_single_in_multitasknet_h36m(model,
         np.save(os.path.join(save_path, 'pve_per_frame.npy'), pve_per_frame)
         print('PVE: {:.5f}'.format(pve))
 
+    if 'pve_scale_corrected' in metrics:
+        pve_scale_corrected = pve_scale_corrected_sum / (num_samples * num_vertices)
+        pve_scale_corrected_per_frame = np.concatenate(pve_scale_corrected_per_frame, axis=0)
+        np.save(os.path.join(save_path, 'pve_scale_corrected_per_frame.npy'),
+                pve_scale_corrected_per_frame)
+        print('PVE SC: {:.5f}'.format(pve_scale_corrected))
+
     if 'pve_pa' in metrics:
         pve_pa = pve_pa_sum / (num_samples * num_vertices)
         pve_pa_per_frame = np.concatenate(pve_pa_per_frame, axis=0)
@@ -273,17 +345,24 @@ def evaluate_single_in_multitasknet_h36m(model,
         np.save(os.path.join(save_path, 'pvet_per_frame.npy'), pvet_per_frame)
         print('PVE-T: {:.5f}'.format(pvet))
 
-    if 'pve-t_pa' in metrics:
-        pvet_pa = pvet_pa_sum / (num_samples * num_vertices)
-        pvet_pa_per_frame = np.concatenate(pvet_pa_per_frame, axis=0)
-        np.save(os.path.join(save_path, 'pvet_pa_per_frame.npy'), pvet_pa_per_frame)
-        print('PVE-T PA: {:.5f}'.format(pvet_pa))
+    if 'pve-t_scale_corrected' in metrics:
+        pvet_scale_corrected = pvet_scale_corrected_sum / (num_samples * num_vertices)
+        pvet_scale_corrected_per_frame = np.concatenate(pvet_scale_corrected_per_frame, axis=0)
+        np.save(os.path.join(save_path, 'pvet_scale_corrected_per_frame.npy'), pvet_scale_corrected_per_frame)
+        print('PVE-T SC: {:.5f}'.format(pvet_scale_corrected))
 
     if 'mpjpe' in metrics:
         mpjpe = mpjpe_sum / (num_samples * num_joints3d)
         mpjpe_per_frame = np.concatenate(mpjpe_per_frame, axis=0)
         np.save(os.path.join(save_path, 'mpjpe_per_frame.npy'), mpjpe_per_frame)
         print('MPJPE: {:.5f}'.format(mpjpe))
+
+    if 'mpjpe_scale_corrected' in metrics:
+        mpjpe_scale_corrected = mpjpe_scale_corrected_sum / (num_samples * num_joints3d)
+        mpjpe_scale_corrected_per_frame = np.concatenate(mpjpe_scale_corrected_per_frame, axis=0)
+        np.save(os.path.join(save_path, 'mpjpe_scale_corrected_per_frame.npy'),
+                mpjpe_scale_corrected_per_frame)
+        print('MPJPE SC: {:.5f}'.format(mpjpe_scale_corrected))
 
     if 'j3d_rec_err' in metrics:
         j3d_rec_err = j3d_rec_err_sum / (num_samples * num_joints3d)
@@ -296,6 +375,13 @@ def evaluate_single_in_multitasknet_h36m(model,
         pve_2d_per_frame = np.concatenate(pve_2d_per_frame, axis=0)
         np.save(os.path.join(save_path, 'pve_2d_per_frame.npy'), pve_2d_per_frame)
         print('PVE 2D: {:.5f}'.format(pve_2d))
+
+    if 'pve_2d_scale_corrected' in metrics:
+        pve_2d_scale_corrected = pve_2d_scale_corrected_sum / (num_samples * num_vertices)
+        pve_2d_scale_corrected_per_frame = np.concatenate(pve_2d_scale_corrected_per_frame, axis=0)
+        np.save(os.path.join(save_path, 'pve_2d_scale_corrected_per_frame.npy'),
+                pve_2d_scale_corrected_per_frame)
+        print('PVE SC 2D: {:.5f}'.format(pve_2d_scale_corrected))
 
     if 'pve_2d_pa' in metrics:
         pve_2d_pa = pve_2d_pa_sum / (num_samples * num_vertices)
@@ -327,7 +413,9 @@ if __name__ == '__main__':
     print("Eval examples found:", len(dataset))
 
     # Metrics
-    metrics = ['pve', 'pve-t', 'pve_pa', 'pve-t_pa', 'mpjpe', 'j3d_rec_err', 'pve_2d', 'pve_2d_pa']
+    metrics = ['pve', 'pve-t', 'pve_pa', 'pve-t_pa', 'mpjpe', 'j3d_rec_err',
+               'pve_2d', 'pve_2d_pa',
+               'pve_scale_corrected', 'mpjpe_scale_corrected', 'pve_2d_scale_corrected']
 
     save_path = '/data/cvfs/as2562/SPIN/evaluations/h36m_protocol{}'.format(str(args.protocol))
     if not os.path.exists(save_path):
