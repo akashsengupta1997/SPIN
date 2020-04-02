@@ -270,7 +270,7 @@ if __name__ == '__main__':
     print("Eval examples found:", len(dataset))
 
     # Metrics
-    metrics = ['pve', 'pve_scale_corrected', 'pve-t', 'pve_pa', 'pve-t_scale_corrected']
+    metrics = ['pve', 'pve_scale_corrected', 'pve_pa', 'pve-t', 'pve-t_scale_corrected']
 
     save_path = '/data/cvfs/as2562/SPIN/evaluations/sports_videos_final_dataset'
     if not os.path.exists(save_path):
