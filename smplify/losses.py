@@ -18,7 +18,7 @@ def gmof(x, sigma):
 
 def angle_prior(pose):
     """
-    Angle prior that penalizes unnatural bending of the knees and elbows
+    Angle prior that penalizes unnatural bending of the knees and elbows (i.e. hyperextension)
     """
     # We subtract 3 because pose does not include the global rotation of the model
     return torch.exp(pose[:, [55-3, 58-3, 12-3, 15-3]] * torch.tensor([1., -1., -1, -1.], device=pose.device)) ** 2
