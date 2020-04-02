@@ -335,7 +335,7 @@ if __name__ == '__main__':
     model.eval()
 
     # Setup evaluation dataset
-    dataset_path = '/scratch2/as2562/datasets/H36M/eval'
+    dataset_path = '/scratch2/as2562/datasets/3DPW/test'
     dataset = PW3DEvalDataset(dataset_path, img_wh=constants.IMG_RES)
     print("Eval examples found:", len(dataset))
 
