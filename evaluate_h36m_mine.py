@@ -238,76 +238,75 @@ def evaluate_single_in_multitasknet_h36m(model,
                 vis_imgs = samples_batch['vis_img'].numpy()
                 vis_imgs = np.transpose(vis_imgs, [0, 2, 3, 1])
 
-                for i in range(1):  # TODO this loop is pointless since am only visualising first element of batch
-                    plt.figure(figsize=(16, 12))
-                    plt.subplot(341)
-                    plt.imshow(vis_imgs[i])
+                plt.figure(figsize=(16, 12))
+                plt.subplot(341)
+                plt.imshow(vis_imgs[0])
 
-                    plt.subplot(342)
-                    plt.imshow(vis_imgs[i])
-                    plt.scatter(pred_vertices_projected2d[i, :, 0], pred_vertices_projected2d[i, :, 1], s=0.1, c='r')
+                plt.subplot(342)
+                plt.imshow(vis_imgs[0])
+                plt.scatter(pred_vertices_projected2d[0, :, 0], pred_vertices_projected2d[0, :, 1], s=0.1, c='r')
 
-                    plt.subplot(345)
-                    plt.scatter(target_vertices[i, :, 0], target_vertices[i, :, 1], s=0.1, c='b')
-                    plt.scatter(pred_vertices[i, :, 0], pred_vertices[i, :, 1], s=0.1, c='r')
-                    plt.gca().invert_yaxis()
-                    plt.gca().set_aspect('equal', adjustable='box')
+                plt.subplot(345)
+                plt.scatter(target_vertices[0, :, 0], target_vertices[0, :, 1], s=0.1, c='b')
+                plt.scatter(pred_vertices[0, :, 0], pred_vertices[0, :, 1], s=0.1, c='r')
+                plt.gca().invert_yaxis()
+                plt.gca().set_aspect('equal', adjustable='box')
 
-                    plt.subplot(346)
-                    plt.scatter(target_vertices[i, :, 0], target_vertices[i, :, 1], s=0.1,
-                                c='b')
-                    plt.scatter(pred_vertices_scale_corrected[i, :, 0],
-                                pred_vertices_scale_corrected[i, :, 1], s=0.1,
-                                c='r')
-                    plt.gca().invert_yaxis()
-                    plt.gca().set_aspect('equal', adjustable='box')
+                plt.subplot(346)
+                plt.scatter(target_vertices[0, :, 0], target_vertices[0, :, 1], s=0.1,
+                            c='b')
+                plt.scatter(pred_vertices_scale_corrected[0, :, 0],
+                            pred_vertices_scale_corrected[0, :, 1], s=0.1,
+                            c='r')
+                plt.gca().invert_yaxis()
+                plt.gca().set_aspect('equal', adjustable='box')
 
-                    plt.subplot(347)
-                    plt.scatter(target_vertices[i, :, 0], target_vertices[i, :, 1], s=0.1, c='b')
-                    plt.scatter(pred_vertices_pa[i, :, 0], pred_vertices_pa[i, :, 1], s=0.1, c='r')
-                    plt.gca().invert_yaxis()
-                    plt.gca().set_aspect('equal', adjustable='box')
+                plt.subplot(347)
+                plt.scatter(target_vertices[0, :, 0], target_vertices[0, :, 1], s=0.1, c='b')
+                plt.scatter(pred_vertices_pa[0, :, 0], pred_vertices_pa[0, :, 1], s=0.1, c='r')
+                plt.gca().invert_yaxis()
+                plt.gca().set_aspect('equal', adjustable='box')
 
-                    plt.subplot(348)
-                    plt.scatter(target_reposed_vertices[i, :, 0], target_reposed_vertices[i, :, 1], s=0.1, c='b')
-                    plt.scatter(pred_reposed_vertices_sc[i, :, 0], pred_reposed_vertices_sc[i, :, 1], s=0.1, c='r')
-                    plt.gca().set_aspect('equal', adjustable='box')
+                plt.subplot(348)
+                plt.scatter(target_reposed_vertices[0, :, 0], target_reposed_vertices[0, :, 1], s=0.1, c='b')
+                plt.scatter(pred_reposed_vertices_sc[0, :, 0], pred_reposed_vertices_sc[0, :, 1], s=0.1, c='r')
+                plt.gca().set_aspect('equal', adjustable='box')
 
-                    plt.subplot(349)
-                    for j in range(num_joints3d):
-                        plt.scatter(pred_joints_h36mlsp[i, j, 0], pred_joints_h36mlsp[i, j, 1], c='r')
-                        plt.scatter(target_joints_h36mlsp[i, j, 0], target_joints_h36mlsp[i, j, 1], c='b')
-                        plt.text(pred_joints_h36mlsp[i, j, 0], pred_joints_h36mlsp[i, j, 1], s=str(j))
-                        plt.text(target_joints_h36mlsp[i, j, 0], target_joints_h36mlsp[i, j, 1], s=str(j))
-                    plt.gca().invert_yaxis()
-                    plt.gca().set_aspect('equal', adjustable='box')
+                plt.subplot(349)
+                for j in range(num_joints3d):
+                    plt.scatter(pred_joints_h36mlsp[0, j, 0], pred_joints_h36mlsp[0, j, 1], c='r')
+                    plt.scatter(target_joints_h36mlsp[0, j, 0], target_joints_h36mlsp[0, j, 1], c='b')
+                    plt.text(pred_joints_h36mlsp[0, j, 0], pred_joints_h36mlsp[0, j, 1], s=str(j))
+                    plt.text(target_joints_h36mlsp[0, j, 0], target_joints_h36mlsp[0, j, 1], s=str(j))
+                plt.gca().invert_yaxis()
+                plt.gca().set_aspect('equal', adjustable='box')
 
-                    plt.subplot(3, 4, 10)
-                    for j in range(num_joints3d):
-                        plt.scatter(pred_joints_h36mlsp_sc[i, j, 0],
-                                    pred_joints_h36mlsp_sc[i, j, 1], c='r')
-                        plt.scatter(target_joints_h36mlsp[i, j, 0],
-                                    target_joints_h36mlsp[i, j, 1], c='b')
-                        plt.text(pred_joints_h36mlsp_sc[i, j, 0],
-                                 pred_joints_h36mlsp_sc[i, j, 1], s=str(j))
-                        plt.text(target_joints_h36mlsp[i, j, 0],
-                                 target_joints_h36mlsp[i, j, 1], s=str(j))
-                    plt.gca().invert_yaxis()
-                    plt.gca().set_aspect('equal', adjustable='box')
+                plt.subplot(3, 4, 10)
+                for j in range(num_joints3d):
+                    plt.scatter(pred_joints_h36mlsp_sc[0, j, 0],
+                                pred_joints_h36mlsp_sc[0, j, 1], c='r')
+                    plt.scatter(target_joints_h36mlsp[0, j, 0],
+                                target_joints_h36mlsp[0, j, 1], c='b')
+                    plt.text(pred_joints_h36mlsp_sc[0, j, 0],
+                             pred_joints_h36mlsp_sc[0, j, 1], s=str(j))
+                    plt.text(target_joints_h36mlsp[0, j, 0],
+                             target_joints_h36mlsp[0, j, 1], s=str(j))
+                plt.gca().invert_yaxis()
+                plt.gca().set_aspect('equal', adjustable='box')
 
-                    plt.subplot(3, 4, 11)
-                    for j in range(num_joints3d):
-                        plt.scatter(pred_joints_h36mlsp_pa[i, j, 0], pred_joints_h36mlsp_pa[i, j, 1], c='r')
-                        plt.scatter(target_joints_h36mlsp[i, j, 0], target_joints_h36mlsp[i, j, 1], c='b')
-                        plt.text(pred_joints_h36mlsp_pa[i, j, 0], pred_joints_h36mlsp_pa[i, j, 1], s=str(j))
-                        plt.text(target_joints_h36mlsp[i, j, 0], target_joints_h36mlsp[i, j, 1], s=str(j))
-                    plt.gca().invert_yaxis()
-                    plt.gca().set_aspect('equal', adjustable='box')
+                plt.subplot(3, 4, 11)
+                for j in range(num_joints3d):
+                    plt.scatter(pred_joints_h36mlsp_pa[0, j, 0], pred_joints_h36mlsp_pa[0, j, 1], c='r')
+                    plt.scatter(target_joints_h36mlsp[0, j, 0], target_joints_h36mlsp[0, j, 1], c='b')
+                    plt.text(pred_joints_h36mlsp_pa[0, j, 0], pred_joints_h36mlsp_pa[0, j, 1], s=str(j))
+                    plt.text(target_joints_h36mlsp[0, j, 0], target_joints_h36mlsp[0, j, 1], s=str(j))
+                plt.gca().invert_yaxis()
+                plt.gca().set_aspect('equal', adjustable='box')
 
-                    # plt.show()
-                    save_fig_path = os.path.join(vis_save_path, fnames[i])
-                    plt.savefig(save_fig_path, bbox_inches='tight')
-                    plt.close()
+                # plt.show()
+                save_fig_path = os.path.join(vis_save_path, fnames[0])
+                plt.savefig(save_fig_path, bbox_inches='tight')
+                plt.close()
 
     # ------------------------------- DISPLAY METRICS AND SAVE PER-FRAME METRICS -------------------------------
     fname_per_frame = np.concatenate(fname_per_frame, axis=0)
