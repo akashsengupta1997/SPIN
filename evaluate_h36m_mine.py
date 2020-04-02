@@ -416,7 +416,7 @@ if __name__ == '__main__':
 
     # Metrics
     metrics = ['pve', 'pve-t', 'pve_pa', 'pve-t_pa', 'mpjpe', 'j3d_rec_err',
-               'pve_2d', 'pve_2d_pa', 'pve_2d_scale_corrected'
+               'pve_2d', 'pve_2d_pa', 'pve_2d_scale_corrected',
                'pve_scale_corrected', 'pve-t_scale_corrected', 'mpjpe_scale_corrected']
 
     save_path = '/data/cvfs/as2562/SPIN/evaluations/h36m_protocol{}'.format(str(args.protocol))
