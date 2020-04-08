@@ -126,3 +126,4 @@ smplify/prior.py
 
 # Predictions
 predictions/*
+evaluations/*

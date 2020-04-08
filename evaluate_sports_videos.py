@@ -139,17 +139,17 @@ def evaluate_single_in_multitasknet_sports_videos(model,
             pvet_sum += np.sum(pvet_batch)
             pvet_per_frame.append(np.mean(pvet_batch, axis=-1))
 
-            # Scale and translation correction
-            if 'pve-t_scale_corrected' in metrics:
-                pred_reposed_vertices_sc = scale_and_translation_transform_batch(
-                    pred_reposed_vertices,
-                    target_reposed_vertices)
-                pvet_scale_corrected_batch = np.linalg.norm(
-                    pred_reposed_vertices_sc - target_reposed_vertices,
-                    axis=-1)  # (bs, 6890)
-                pvet_scale_corrected_sum += np.sum(pvet_scale_corrected_batch)  # scalar
-                pvet_scale_corrected_per_frame.append(
-                    np.mean(pvet_scale_corrected_batch, axis=-1))
+        # Scale and translation correction
+        if 'pve-t_scale_corrected' in metrics:
+            pred_reposed_vertices_sc = scale_and_translation_transform_batch(
+                pred_reposed_vertices,
+                target_reposed_vertices)
+            pvet_scale_corrected_batch = np.linalg.norm(
+                pred_reposed_vertices_sc - target_reposed_vertices,
+                axis=-1)  # (bs, 6890)
+            pvet_scale_corrected_sum += np.sum(pvet_scale_corrected_batch)  # scalar
+            pvet_scale_corrected_per_frame.append(
+                np.mean(pvet_scale_corrected_batch, axis=-1))
 
         num_samples += target_shape.shape[0]
 
