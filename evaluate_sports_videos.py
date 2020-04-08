@@ -17,9 +17,6 @@ from utils.pose_utils import compute_similarity_transform_batch, \
 from utils.geometry import orthographic_project_torch, undo_keypoint_normalisation
 from datasets.sports_videos_eval_dataset import SportsVideosEvalDataset
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
 
 def evaluate_single_in_multitasknet_sports_videos(model,
                                                   eval_dataset,
@@ -251,12 +248,13 @@ def evaluate_single_in_multitasknet_sports_videos(model,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--checkpoint', default=None, help='Path to network checkpoint')
+    parser.add_argument('--gpu', defualt='0', type=str)
     parser.add_argument('--num_workers', default=4, type=int, help='Number of processes for data loading')
     args = parser.parse_args()
 
     # Device
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     model = hmr(config.SMPL_MEAN_PARAMS).to(device)
