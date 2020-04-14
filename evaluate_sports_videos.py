@@ -337,7 +337,8 @@ if __name__ == '__main__':
 
     # Setup evaluation dataset
     dataset_path = '/scratch2/as2562/datasets/sports_videos_smpl/final_dataset'
-    dataset = SportsVideosEvalDataset(dataset_path, img_wh=constants.IMG_RES)
+    dataset = SportsVideosEvalDataset(dataset_path, img_wh=constants.IMG_RES,
+                                      path_correction=False)
     print("Eval examples found:", len(dataset))
 
     # Metrics

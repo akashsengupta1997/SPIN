@@ -10,7 +10,8 @@ import constants
 
 
 class SportsVideosEvalDataset(Dataset):
-    def __init__(self, dataset_path, img_wh, bbox_scale_factor=1.2):
+    def __init__(self, dataset_path, img_wh, bbox_scale_factor=1.2,
+                 path_correction=False):
         super(SportsVideosEvalDataset, self).__init__()
 
         # Data
@@ -29,6 +30,8 @@ class SportsVideosEvalDataset(Dataset):
         self.bbox_scale_factor = bbox_scale_factor
         self.normalize_img = Normalize(mean=constants.IMG_NORM_MEAN, std=constants.IMG_NORM_STD)
 
+        self.path_correction = path_correction
+
     def __len__(self):
         return len(self.frame_paths)
 
@@ -39,6 +42,8 @@ class SportsVideosEvalDataset(Dataset):
         # Input image - need to crop and resize because annoyingly, for sports videos dataset,
         # the frames in the cropped_frames dir are not actually tightly cropped frames.
         frame_path = self.frame_paths[index]
+        if self.path_correction:
+            frame_path = frame_path.replace('/scratch2/', '/scratch/')
         img = cv2.cvtColor(cv2.imread(frame_path), cv2.COLOR_BGR2RGB)
         bbox_centre = self.bbox_centres[index]
         bbox_wh = self.bbox_whs[index] * self.bbox_scale_factor
@@ -50,6 +55,13 @@ class SportsVideosEvalDataset(Dataset):
         img = img[top_left[0]: bottom_right[0], top_left[1]: bottom_right[1]]
         img = cv2.resize(img, (self.img_wh, self.img_wh), interpolation=cv2.INTER_LINEAR)
         img = np.transpose(img, [2, 0, 1])/255.0
+
+        # Silhouette
+        pointrend_mask_path = frame_path.replace('cropped_frames', 'pointrend_R50FPN_masks')
+        silhouette = cv2.imread(pointrend_mask_path, 0)
+        silhouette = silhouette[top_left[0]: bottom_right[0], top_left[1]: bottom_right[1]]
+        silhouette = cv2.resize(silhouette, (self.img_wh, self.img_wh),
+                                interpolation=cv2.INTER_NEAREST)
 
         # Targets
         vertices = self.vertices[index]
@@ -65,6 +77,7 @@ class SportsVideosEvalDataset(Dataset):
 
         return {'input': input,
                 'vis_img': img,
+                'silhouette': silhouette,
                 'shape': shape,
                 'vertices': vertices,
                 'frame_path': frame_path,
