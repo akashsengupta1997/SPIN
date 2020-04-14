@@ -23,6 +23,7 @@ class SportsVideosEvalDataset(Dataset):
         self.genders = data['genders']
         self.bbox_centres = data['centres']  # Tight bounding box centre
         self.bbox_whs = data['whs']  # Tight bounding box width/height
+        self.kprcnn_keypoints = data['keypoints']
 
         assert len(self.frame_paths) == len(self.vertices) == len(self.body_shapes) == len(self.genders)
 
@@ -53,6 +54,7 @@ class SportsVideosEvalDataset(Dataset):
         top_left[top_left < 0] = 0
         bottom_right[bottom_right < 0] = 0
         img = img[top_left[0]: bottom_right[0], top_left[1]: bottom_right[1]]
+        orig_height, orig_width = img.shape[:2]
         img = cv2.resize(img, (self.img_wh, self.img_wh), interpolation=cv2.INTER_LINEAR)
         img = np.transpose(img, [2, 0, 1])/255.0
 
@@ -62,6 +64,12 @@ class SportsVideosEvalDataset(Dataset):
         silhouette = silhouette[top_left[0]: bottom_right[0], top_left[1]: bottom_right[1]]
         silhouette = cv2.resize(silhouette, (self.img_wh, self.img_wh),
                                 interpolation=cv2.INTER_NEAREST)
+
+        # 2D Joints
+        keypoints = self.kprcnn_keypoints[index]
+        keypoints = keypoints[:, :2] - top_left[::-1]
+        keypoints = keypoints[:, :2] * np.array([self.img_wh / float(orig_width),
+                                                 self.img_wh / float(orig_height)])
 
         # Targets
         vertices = self.vertices[index]
@@ -78,6 +86,7 @@ class SportsVideosEvalDataset(Dataset):
         return {'input': input,
                 'vis_img': img,
                 'silhouette': silhouette,
+                'keypoints': keypoints,
                 'shape': shape,
                 'vertices': vertices,
                 'frame_path': frame_path,
