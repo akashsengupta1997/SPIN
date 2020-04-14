@@ -40,6 +40,10 @@ class NMRRenderer(nn.Module):
             self.register_buffer('textures', textures)
 
         # Setup renderer
+        if len(list(cam_K.shape)) != 3:
+            print("Expanding cam_K and cam_R by batch size.")
+            cam_K = cam_K[None, :, :].expand(batch_size, -1, -1)
+            cam_R = cam_R[None, :, :].expand(batch_size, -1, -1)
         renderer = nr.Renderer(camera_mode='projection',
                                K=cam_K,
                                R=cam_R,
@@ -59,7 +63,7 @@ class NMRRenderer(nn.Module):
         :param vertices: (B, N, 3)
         :param cam_ts: (B, 1, 3)
         """
-        if cam_ts.ndim == 2:
+        if len(list(cam_ts.shape)) == 2:
             cam_ts = cam_ts.unsqueeze(1)
         if self.rend_parts_seg:
             parts, _, mask = self.renderer(vertices, self.faces, self.textures,
