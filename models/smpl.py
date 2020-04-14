@@ -14,7 +14,6 @@ class SMPL(_SMPL):
     def __init__(self, *args, **kwargs):
         super(SMPL, self).__init__(*args, **kwargs)
         joints = [constants.JOINT_MAP[i] for i in constants.JOINT_NAMES]
-        print(joints)
         J_regressor_extra = np.load(config.JOINT_REGRESSOR_TRAIN_EXTRA)
         self.register_buffer('J_regressor_extra', torch.tensor(J_regressor_extra, dtype=torch.float32))
         self.joint_map = torch.tensor(joints, dtype=torch.long)
@@ -24,7 +23,9 @@ class SMPL(_SMPL):
         smpl_output = super(SMPL, self).forward(*args, **kwargs)
         extra_joints = vertices2joints(self.J_regressor_extra, smpl_output.vertices)
         joints = torch.cat([smpl_output.joints, extra_joints], dim=1)
+        coco_joints = joints[:, constants.SMPL_JOINTS_TO_COCO_MAP, :]
         joints = joints[:, self.joint_map, :]
+        joints = torch.cat([joints, coco_joints], dim=1)
         output = ModelOutput(vertices=smpl_output.vertices,
                              global_orient=smpl_output.global_orient,
                              body_pose=smpl_output.body_pose,
