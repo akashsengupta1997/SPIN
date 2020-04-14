@@ -11,7 +11,7 @@ import constants
 
 class SportsVideosEvalDataset(Dataset):
     def __init__(self, dataset_path, img_wh, bbox_scale_factor=1.2,
-                 path_correction=False):
+                 path_correction=False, eval_img_wh=256):
         super(SportsVideosEvalDataset, self).__init__()
 
         # Data
@@ -28,6 +28,7 @@ class SportsVideosEvalDataset(Dataset):
         assert len(self.frame_paths) == len(self.vertices) == len(self.body_shapes) == len(self.genders)
 
         self.img_wh = img_wh
+        self.eval_img_wh = eval_img_wh
         self.bbox_scale_factor = bbox_scale_factor
         self.normalize_img = Normalize(mean=constants.IMG_NORM_MEAN, std=constants.IMG_NORM_STD)
 
@@ -62,14 +63,14 @@ class SportsVideosEvalDataset(Dataset):
         pointrend_mask_path = frame_path.replace('cropped_frames', 'pointrend_R50FPN_masks')
         silhouette = cv2.imread(pointrend_mask_path, 0)
         silhouette = silhouette[top_left[0]: bottom_right[0], top_left[1]: bottom_right[1]]
-        silhouette = cv2.resize(silhouette, (self.img_wh, self.img_wh),
+        silhouette = cv2.resize(silhouette, (self.eval_img_wh, self.eval_img_wh),
                                 interpolation=cv2.INTER_NEAREST)
 
         # 2D Joints
         keypoints = self.kprcnn_keypoints[index]
         keypoints = keypoints[:, :2] - top_left[::-1]
-        keypoints = keypoints[:, :2] * np.array([self.img_wh / float(orig_width),
-                                                 self.img_wh / float(orig_height)])
+        keypoints = keypoints[:, :2] * np.array([self.eval_img_wh / float(orig_width),
+                                                 self.eval_img_wh / float(orig_height)])
 
         # Targets
         vertices = self.vertices[index]
