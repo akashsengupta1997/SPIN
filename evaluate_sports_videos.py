@@ -126,7 +126,6 @@ def evaluate_single_in_multitasknet_sports_videos(model,
 
         pred_joints_all = pred_output.joints
         pred_joints_coco = pred_joints_all[:, 49:, :]
-        print('coco shape', pred_joints_coco.shape)
         pred_joints2d_coco = orthographic_project_torch(pred_joints_coco, pred_camera)
         pred_joints2d_coco = undo_keypoint_normalisation(pred_joints2d_coco, output_img_wh)
 
