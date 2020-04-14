@@ -14,7 +14,8 @@ import constants
 from models import hmr, SMPL
 from utils.pose_utils import compute_similarity_transform_batch, \
     scale_and_translation_transform_batch
-from utils.geometry import orthographic_project_torch, undo_keypoint_normalisation
+from utils.geometry import undo_keypoint_normalisation
+from utils.cam_utils import orthographic_project_torch
 from datasets.my_3dpw_eval_dataset import PW3DEvalDataset
 
 

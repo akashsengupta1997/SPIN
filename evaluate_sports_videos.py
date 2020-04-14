@@ -14,10 +14,10 @@ import constants
 from models import hmr, SMPL, NMRRenderer
 from utils.pose_utils import compute_similarity_transform_batch, \
     scale_and_translation_transform_batch
-from utils.geometry import orthographic_project_torch, undo_keypoint_normalisation
+from utils.geometry import undo_keypoint_normalisation
 from utils.label_conversions import convert_multiclass_to_binary_labels_torch
 from utils.cam_utils import get_intrinsics_matrix,\
-    batch_convert_weak_perspective_to_camera_translation
+    batch_convert_weak_perspective_to_camera_translation, orthographic_project_torch
 from datasets.sports_videos_eval_dataset import SportsVideosEvalDataset
 
 
@@ -204,7 +204,7 @@ def evaluate_single_in_multitasknet_sports_videos(model,
             num_true_negatives += num_tn
             num_false_negatives += num_fn
 
-            silhouette_iou_per_frame.append(num_tp/(num_tp + num_fp + num_false_negatives))
+            silhouette_iou_per_frame.append(num_tp/(num_tp + num_fp + num_fn))
 
         num_samples += target_shape.shape[0]
 
