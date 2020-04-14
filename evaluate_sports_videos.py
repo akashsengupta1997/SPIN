@@ -11,10 +11,13 @@ import cv2
 
 import config
 import constants
-from models import hmr, SMPL
+from models import hmr, SMPL, NMRRenderer
 from utils.pose_utils import compute_similarity_transform_batch, \
     scale_and_translation_transform_batch
 from utils.geometry import orthographic_project_torch, undo_keypoint_normalisation
+from utils.label_conversions import convert_multiclass_to_binary_labels_torch
+from utils.cam_utils import get_intrinsics_matrix,\
+    batch_convert_weak_perspective_to_camera_translation
 from datasets.sports_videos_eval_dataset import SportsVideosEvalDataset
 
 
@@ -61,6 +64,26 @@ def evaluate_single_in_multitasknet_sports_videos(model,
         pvet_scale_corrected_sum = 0.0
         pvet_scale_corrected_per_frame = []
 
+    if 'silhouette_iou' in metrics:
+        # Set-up NMR renderer to render silhouettes from predicted vertex meshes.
+        # Assuming camera rotation is identity (since it is dealt with by global_orients)
+        cam_K = get_intrinsics_matrix(constants.IMG_RES, constants.IMG_RES,
+                                      constants.FOCAL_LENGTH)
+        cam_K = torch.from_numpy(cam_K.astype(np.float32)).to(device)
+        cam_R = torch.eye(3).to(device)
+        cam_K = cam_K[None, :, :]
+        cam_R = cam_R[None, :, :]
+        nmr_parts_renderer = NMRRenderer(1,
+                                         cam_K,
+                                         cam_R,
+                                         constants.IMG_RES,
+                                         rend_parts_seg=True).to(device)
+        num_true_positives = 0.0
+        num_false_positives = 0.0
+        num_true_negatives = 0.0
+        num_false_negatives = 0.0
+        silhouette_iou_per_frame = []
+
     frame_path_per_frame = []
     pose_per_frame = []
     shape_per_frame = []
@@ -77,6 +100,7 @@ def evaluate_single_in_multitasknet_sports_videos(model,
         target_shape = samples_batch['shape']
         target_shape = target_shape.to(device)
         target_vertices = samples_batch['vertices']
+        target_silhouette = samples_batch['silhouette']
 
         target_gender = samples_batch['gender'][0]
         if target_gender == 'm':
@@ -95,16 +119,26 @@ def evaluate_single_in_multitasknet_sports_videos(model,
         pred_reposed_smpl_output = smpl(betas=pred_betas)
         pred_reposed_vertices = pred_reposed_smpl_output.vertices
 
+        pred_camera = pred_camera.cpu().detach().numpy()
+        if 'silhouette_iou' in metrics:
+            pred_cam_ts = batch_convert_weak_perspective_to_camera_translation(pred_camera,
+                                                                               constants.FOCAL_LENGTH,
+                                                                               constants.IMG_RES)
+            pred_cam_ts = torch.from_numpy(pred_cam_ts).float().to(device)
+            part_seg = nmr_parts_renderer(pred_vertices, pred_cam_ts.unsqueeze(0))
+            pred_silhouette = convert_multiclass_to_binary_labels_torch(part_seg)
+            pred_silhouette = pred_silhouette.cpu().detach().numpy()
+
         # Numpy-fying
         target_vertices = target_vertices.cpu().detach().numpy()
         target_reposed_vertices = target_reposed_vertices.cpu().detach().numpy()
+        target_silhouette = target_silhouette.cpu().detach().numpy()
 
         pred_vertices = pred_vertices.cpu().detach().numpy()
         pred_vertices_projected2d = pred_vertices_projected2d.cpu().detach().numpy()
         pred_reposed_vertices = pred_reposed_vertices.cpu().detach().numpy()
         pred_rotmat = pred_rotmat.cpu().detach().numpy()
         pred_betas = pred_betas.cpu().detach().numpy()
-        pred_camera = pred_camera.cpu().detach().numpy()
 
         # ------------------------------- METRICS -------------------------------
         if 'pve' in metrics:
@@ -148,6 +182,30 @@ def evaluate_single_in_multitasknet_sports_videos(model,
             pvet_scale_corrected_per_frame.append(
                 np.mean(pvet_scale_corrected_batch, axis=-1))
 
+        if 'silhouette_iou' in metrics:
+            pred_silhouette = np.round(pred_silhouette).astype(np.bool)
+            target_silhouette = np.round(target_silhouette).astype(np.bool)
+
+            true_positive = np.logical_and(pred_silhouette, target_silhouette)
+            false_positive = np.logical_and(pred_silhouette,
+                                            np.logical_not(target_silhouette))
+            true_negative = np.logical_and(np.logical_not(pred_silhouette),
+                                           np.logical_not(target_silhouette))
+            false_negative = np.logical_and(np.logical_not(pred_silhouette),
+                                            target_silhouette)
+
+            num_tp = int(np.sum(true_positive))
+            num_fp = int(np.sum(false_positive))
+            num_tn = int(np.sum(true_negative))
+            num_fn = int(np.sum(false_negative))
+
+            num_true_positives += num_tp
+            num_false_positives += num_fp
+            num_true_negatives += num_tn
+            num_false_negatives += num_fn
+
+            silhouette_iou_per_frame.append(num_tp/(num_tp + num_fp + num_false_negatives))
+
         num_samples += target_shape.shape[0]
 
         frame_path = samples_batch['frame_path']
@@ -162,31 +220,36 @@ def evaluate_single_in_multitasknet_sports_videos(model,
             vis_imgs = np.transpose(vis_imgs, [0, 2, 3, 1])
 
             plt.figure(figsize=(12, 8))
-            plt.subplot(231)
+            plt.subplot(241)
             plt.imshow(vis_imgs[0])
 
-            plt.subplot(232)
+            plt.subplot(242)
             plt.imshow(vis_imgs[0])
             plt.scatter(pred_vertices_projected2d[0, :, 0], pred_vertices_projected2d[0, :, 1], s=0.1, c='r')
 
-            plt.subplot(233)
+            if 'silhouette_iou' in metrics:
+                plt.subplot(243)
+                plt.imshow(pred_silhouette[0].astype(np.int16) -
+                           target_silhouette[0].astype(np.int16))
+
+            plt.subplot(244)
             plt.scatter(target_vertices[0, :, 0], target_vertices[0, :, 1], s=0.1, c='b')
             plt.scatter(pred_vertices[0, :, 0], pred_vertices[0, :, 1], s=0.05, c='r')
             plt.gca().invert_yaxis()
             plt.gca().set_aspect('equal', adjustable='box')
 
-            plt.subplot(234)
+            plt.subplot(245)
             plt.scatter(target_vertices[0, :, 0], target_vertices[0, :, 1], s=0.1, c='b')
             plt.scatter(pred_vertices_pa[0, :, 0], pred_vertices_pa[0, :, 1], s=0.05, c='r')
             plt.gca().invert_yaxis()
             plt.gca().set_aspect('equal', adjustable='box')
 
-            plt.subplot(235)
+            plt.subplot(246)
             plt.scatter(target_reposed_vertices[0, :, 0], target_reposed_vertices[0, :, 1], s=0.1, c='b')
             plt.scatter(pred_reposed_vertices[0, :, 0], pred_reposed_vertices[0, :, 1], s=0.05, c='r')
             plt.gca().set_aspect('equal', adjustable='box')
 
-            plt.subplot(236)
+            plt.subplot(247)
             plt.scatter(target_reposed_vertices[0, :, 0], target_reposed_vertices[0, :, 1], s=0.1, c='b')
             plt.scatter(pred_reposed_vertices_sc[0, :, 0], pred_reposed_vertices_sc[0, :, 1], s=0.05, c='r')
             plt.gca().set_aspect('equal', adjustable='box')
@@ -244,6 +307,16 @@ def evaluate_single_in_multitasknet_sports_videos(model,
                 pvet_scale_corrected_per_frame)
         print('PVE-T SC: {:.5f}'.format(pvet_scale_corrected))
 
+    if 'silhouette_iou' in metrics:
+        mean_iou = num_true_positives / (
+                    num_true_positives + num_false_negatives + num_false_positives)
+        global_acc = (num_true_positives + num_true_negatives) / (
+                    num_true_positives + num_true_negatives + num_false_negatives + num_false_positives)
+        np.save(os.path.join(save_path, 'silhouette_iou_per_frame.npy'),
+                silhouette_iou_per_frame)
+        print('Mean IOU: {:.3f}'.format(mean_iou))
+        print('Global Acc: {:.3f}'.format(global_acc))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -268,7 +341,8 @@ if __name__ == '__main__':
     print("Eval examples found:", len(dataset))
 
     # Metrics
-    metrics = ['pve', 'pve_scale_corrected', 'pve_pa', 'pve-t', 'pve-t_scale_corrected']
+    metrics = ['pve', 'pve_scale_corrected', 'pve_pa', 'pve-t', 'pve-t_scale_corrected',
+               'silhouette_iou']
 
     save_path = '/data/cvfs/as2562/SPIN/evaluations/sports_videos_final_dataset'
     if not os.path.exists(save_path):

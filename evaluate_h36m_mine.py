@@ -26,7 +26,7 @@ def evaluate_single_in_multitasknet_h36m(model,
                                          batch_size,
                                          metrics,
                                          device,
-                                         vis_save_path,
+                                         save_path,
                                          num_workers=4,
                                          pin_memory=True,
                                          vis_every_n_batches=200):
@@ -304,7 +304,7 @@ def evaluate_single_in_multitasknet_h36m(model,
                 plt.gca().set_aspect('equal', adjustable='box')
 
                 # plt.show()
-                save_fig_path = os.path.join(vis_save_path, fnames[0])
+                save_fig_path = os.path.join(save_path, fnames[0])
                 plt.savefig(save_fig_path, bbox_inches='tight')
                 plt.close()
 
@@ -428,7 +428,7 @@ if __name__ == '__main__':
                                          batch_size=8,
                                          metrics=metrics,
                                          device=device,
-                                         vis_save_path=save_path,
+                                         save_path=save_path,
                                          num_workers=args.num_workers,
                                          pin_memory=True,
                                          vis_every_n_batches=100)
