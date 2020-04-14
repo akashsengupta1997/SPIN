@@ -320,7 +320,7 @@ def evaluate_single_in_multitasknet_sports_videos(model,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--checkpoint', default=None, help='Path to network checkpoint')
+    parser.add_argument('--checkpoint', default='data/model_checkpoint.pt', help='Path to network checkpoint')
     parser.add_argument('--gpu', type=str)
     parser.add_argument('--num_workers', default=4, type=int, help='Number of processes for data loading')
     args = parser.parse_args()
