@@ -22,8 +22,8 @@ def orthographic_project_torch(points3D, cam_params):
     t_x = torch.unsqueeze(cam_params[:, 1], dim=1)
     t_y = torch.unsqueeze(cam_params[:, 2], dim=1)
 
-    u = s * x + t_x
-    v = s * y + t_y
+    u = s * (x + t_x)
+    v = s * (y + t_y)
 
     proj_points = torch.stack([u, v], dim=-1)
 
