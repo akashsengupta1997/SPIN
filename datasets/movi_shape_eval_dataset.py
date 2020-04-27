@@ -11,7 +11,7 @@ import constants
 
 class MoViShapeEvalDataset(Dataset):
     def __init__(self, movi_dir_path, img_wh, capture_round='f_pg1'):
-        super(MoViShapeEvalDataset(), self).__init__()
+        super(MoViShapeEvalDataset, self).__init__()
 
         # Paths
         cropped_frames_dir = os.path.join(movi_dir_path, 'cropped_frames')
