@@ -20,7 +20,7 @@ class MoViShapeEvalDataset(Dataset):
         data = np.load(os.path.join(movi_dir_path, 'movi_{}_eval.npz'.format(capture_round)))
         self.frame_fnames = data['imgname']
         self.shape = data['shape']
-        self.genders = data['genders']
+        self.genders = data['gender']
 
         self.cropped_frames_dir = cropped_frames_dir
         self.img_wh = img_wh
