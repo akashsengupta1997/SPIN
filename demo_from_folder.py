@@ -12,6 +12,8 @@ import os
 from models import hmr, SMPL
 from utils.imutils import crop
 from utils.renderer import Renderer
+from utils.geometry import undo_keypoint_normalisation
+from utils.cam_utils import orthographic_project_torch
 import config
 import constants
 import matplotlib.pyplot as plt
@@ -122,10 +124,7 @@ def write_ply_file(fpath, verts, colour):
         f.write(ply_header.format(num_verts))
         np.savetxt(f, verts_with_colour, '%f %f %f %d %d %d')
 
-# TODO this saves results for each image as a separate pkl file - want to save result for all frames in 1 pkl file for videos
-# can either write code here to acummulate different results into individual tensors OR write code at rendering end to do this
-# ideally will do number 1, or else will have 100s of pkl files...
-# just add an option like --video_pred that tells the function that input is a video with sequential frames OR WRITE NEW PREDICTION CODE FOR DEMO ON VIDEO.
+
 if __name__ == '__main__':
     args = parser.parse_args()
     os.makedirs(args.out_folder, exist_ok=True)
@@ -163,6 +162,9 @@ if __name__ == '__main__':
             pred_output = smpl(betas=pred_betas, body_pose=pred_rotmat[:, 1:],
                                global_orient=pred_rotmat[:, 0].unsqueeze(1), pose2rot=False)
             pred_vertices = pred_output.vertices
+            pred_vertices_projected2d = orthographic_project_torch(pred_vertices, pred_camera)
+            pred_vertices_projected2d = undo_keypoint_normalisation(pred_vertices_projected2d,
+                                                                    img.shape[-1])
         # Calculate camera parameters for rendering
         camera_translation = torch.stack([pred_camera[:, 1], pred_camera[:, 2],
                                           2 * constants.FOCAL_LENGTH / (
@@ -170,9 +172,10 @@ if __name__ == '__main__':
                                                                           0] + 1e-9)], dim=-1)
         camera_translation = camera_translation[0].cpu().numpy()
         pred_vertices = pred_vertices[0].cpu().numpy()
+        pred_vertices_projected2d = pred_vertices_projected2d[0].cpu().numpy()
         pred_rotmat = pred_rotmat[0].cpu().numpy()
         pred_betas = pred_betas[0].cpu().numpy()
-        pred_cam = pred_camera[0].cpu.numpy()
+        pred_cam = pred_camera[0].cpu().numpy()
         img = img.permute(1, 2, 0).cpu().numpy()
 
         outfile = os.path.join(args.out_folder,
@@ -190,43 +193,57 @@ if __name__ == '__main__':
         with open(outfile + '_verts.pkl', 'wb') as f:
             pickle.dump(pred_dict, f)
 
+        # Render parametric shape
+        # Setup renderer for visualization
+        renderer = Renderer(focal_length=constants.FOCAL_LENGTH, img_res=constants.IMG_RES,
+                            faces=smpl.faces)
+        img_shape = renderer(pred_vertices, camera_translation, img)
+
+        # Render side views
+        aroundy = cv2.Rodrigues(np.array([0, np.radians(90.), 0]))[0]
+        center = pred_vertices.mean(axis=0)
+        rot_vertices = np.dot((pred_vertices - center), aroundy) + center
+
+        # Render non-parametric shape
+        img_shape_side = renderer(rot_vertices, camera_translation, np.ones_like(img))
+
+        # Save reconstructions
+        cv2.imwrite(outfile + '_shape.png', 255 * img_shape[:, :, ::-1])
+        cv2.imwrite(outfile + '_shape_side.png', 255 * img_shape_side[:, :, ::-1])
+
         # Plot and save visuals
         if args.save_visuals:
-            plt.figure()
-            plt.axis('off')
-            plt.tight_layout()
-
+            plt.figure(figsize=(16, 12))
             subplot_count = 1
             # plot image
-            plt.subplot(1, 2, subplot_count)
+            plt.subplot(2, 2, subplot_count)
             plt.imshow(np.squeeze(img))
             subplot_count += 1
 
-            # plot SPIN predicted verts
-            plt.subplot(1, 2, subplot_count)
-            plt.scatter(pred_vertices[:, 0],
-                        pred_vertices[:, 1],
+            # # plot SPIN predicted verts
+            # plt.subplot(2, 2, subplot_count)
+            # plt.scatter(pred_vertices[:, 0],
+            #             pred_vertices[:, 1],
+            #             s=0.6)
+            # plt.gca().set_aspect('equal', adjustable='box')
+            # plt.gca().invert_yaxis()
+            # subplot_count += 1
+
+            # plot verts overlay
+            plt.subplot(2, 2, subplot_count)
+            plt.imshow(np.squeeze(img))
+            plt.scatter(pred_vertices_projected2d[:, 0],
+                        pred_vertices_projected2d[:, 1],
                         s=0.6)
-            plt.gca().set_aspect('equal', adjustable='box')
-            plt.gca().invert_yaxis()
             subplot_count += 1
-            plt.savefig(outfile + "_verts_plot.png", bbox_inches='tight')
+
+            # plot render
+            plt.subplot(2, 2, subplot_count)
+            plt.imshow(img_shape)
+            subplot_count += 1
+
+            plt.subplots_adjust(wspace=0.05, hspace=0.08)
+            plt.savefig(outfile + "_result.png", bbox_inches='tight')
             plt.close()
 
-            # Render parametric shape
-            # Setup renderer for visualization
-            renderer = Renderer(focal_length=constants.FOCAL_LENGTH, img_res=constants.IMG_RES,
-                                faces=smpl.faces)
-            img_shape = renderer(pred_vertices, camera_translation, img)
 
-            # Render side views
-            aroundy = cv2.Rodrigues(np.array([0, np.radians(90.), 0]))[0]
-            center = pred_vertices.mean(axis=0)
-            rot_vertices = np.dot((pred_vertices - center), aroundy) + center
-
-            # Render non-parametric shape
-            img_shape_side = renderer(rot_vertices, camera_translation, np.ones_like(img))
-
-            # Save reconstructions
-            cv2.imwrite(outfile + '_shape.png', 255 * img_shape[:,:,::-1])
-            cv2.imwrite(outfile + '_shape_side.png', 255 * img_shape_side[:,:,::-1])

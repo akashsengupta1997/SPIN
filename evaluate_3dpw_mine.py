@@ -19,15 +19,14 @@ from utils.cam_utils import orthographic_project_torch
 from datasets.my_3dpw_eval_dataset import PW3DEvalDataset
 
 
-
-def evaluate_single_in_multitasknet_3dpw(model,
-                                         eval_dataset,
-                                         metrics,
-                                         device,
-                                         vis_save_path,
-                                         num_workers=4,
-                                         pin_memory=True,
-                                         vis_every_n_batches=1000):
+def evaluate_3dpw(model,
+                  eval_dataset,
+                  metrics,
+                  device,
+                  vis_save_path,
+                  num_workers=4,
+                  pin_memory=True,
+                  vis_every_n_batches=1000):
 
     eval_dataloader = DataLoader(eval_dataset,
                                  batch_size=1,
@@ -456,14 +455,14 @@ if __name__ == '__main__':
         os.makedirs(save_path)
 
     # Run evaluation
-    evaluate_single_in_multitasknet_3dpw(model=model,
-                                         eval_dataset=dataset,
-                                         metrics=metrics,
-                                         device=device,
-                                         vis_save_path=save_path,
-                                         num_workers=4,
-                                         pin_memory=True,
-                                         vis_every_n_batches=1000)
+    evaluate_3dpw(model=model,
+                  eval_dataset=dataset,
+                  metrics=metrics,
+                  device=device,
+                  vis_save_path=save_path,
+                  num_workers=4,
+                  pin_memory=True,
+                  vis_every_n_batches=1000)
 
 
 
