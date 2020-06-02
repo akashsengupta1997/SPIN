@@ -139,7 +139,7 @@ def evaluate_single_in_multitasknet_ssp3d(model,
         pred_reposed_vertices = pred_reposed_smpl_output.vertices
 
         pred_camera = pred_camera.cpu().detach().numpy()
-        if 'silhouette_iou' in metrics:
+        if 'silhouette_ious' in metrics:
             pred_cam_ts = batch_convert_weak_perspective_to_camera_translation(pred_camera,
                                                                                constants.FOCAL_LENGTH,
                                                                                output_img_wh)
