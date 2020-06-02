@@ -75,7 +75,7 @@ class SSP3DEvalDataset(Dataset):
         pointrend_mask_path = os.path.join(self.pointrend_masks_dir, fname)
         silhouette = cv2.imread(pointrend_mask_path, 0)
         silhouette = silhouette[top_left[0]: bottom_right[0], top_left[1]: bottom_right[1]]
-        silhouette = cv2.resize(silhouette, (self.img_wh, self.img_wh),
+        silhouette = cv2.resize(silhouette, (self.eval_img_wh, self.eval_img_wh),
                                 interpolation=cv2.INTER_NEAREST)
 
         img = torch.from_numpy(img).float()
