@@ -16,9 +16,9 @@ from utils.pose_utils import compute_similarity_transform_batch, \
     scale_and_translation_transform_batch
 from utils.geometry import undo_keypoint_normalisation
 from utils.label_conversions import convert_multiclass_to_binary_labels_torch
-from utils.cam_utils import get_intrinsics_matrix,\
+from utils.cam_utils import get_intrinsics_matrix, \
     batch_convert_weak_perspective_to_camera_translation, orthographic_project_torch
-from datasets.sports_videos_eval_dataset import SportsVideosEvalDataset
+from datasets.ssp3d_eval_dataset import SSP3DEvalDataset
 
 
 def evaluate_single_in_multitasknet_ssp3d(model,
@@ -344,9 +344,9 @@ def evaluate_single_in_multitasknet_ssp3d(model,
 
     if 'silhouette_ious' in metrics:
         mean_iou = num_true_positives / (
-                    num_true_positives + num_false_negatives + num_false_positives)
+                num_true_positives + num_false_negatives + num_false_positives)
         global_acc = (num_true_positives + num_true_negatives) / (
-                    num_true_positives + num_true_negatives + num_false_negatives + num_false_positives)
+                num_true_positives + num_true_negatives + num_false_negatives + num_false_positives)
         np.save(os.path.join(save_path, 'silhouette_iou_per_frame.npy'),
                 silhouette_iou_per_frame)
         print('Mean IOU: {:.3f}'.format(mean_iou))
@@ -379,8 +379,7 @@ if __name__ == '__main__':
 
     # Setup evaluation dataset
     dataset_path = '/scratch/as2562/datasets/ssp_3d'
-    dataset = SportsVideosEvalDataset(dataset_path, img_wh=constants.IMG_RES,
-                                      path_correction=False)
+    dataset = SSP3DEvalDataset(dataset_path, img_wh=constants.IMG_RES)
     print("Eval examples found:", len(dataset))
 
     # Metrics
