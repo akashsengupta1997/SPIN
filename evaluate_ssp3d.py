@@ -384,8 +384,8 @@ if __name__ == '__main__':
     print("Eval examples found:", len(dataset))
 
     # Metrics
-    metrics = ['pve', 'pve_scale_corrected', 'pve_pa', 'pve-t', 'pve-t_scale_corrected',
-               'silhouette_iou', 'j2d_l2e']
+    metrics = ['pves', 'pves_sc', 'pves_pa', 'pve-ts', 'pve-ts_sc',
+               'silhouette_ious', 'joints2D_l2es']
 
     save_path = '/data/cvfs/as2562/SPIN/evaluations/ssp3d'
     if not os.path.exists(save_path):
