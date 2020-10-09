@@ -451,7 +451,7 @@ if __name__ == '__main__':
         vis_every_n_batches = 1000
 
     dataset_path = '/scratches/nazgul_2/as2562/datasets/3DPW/test'
-    dataset = PW3DEvalDataset(dataset_path, img_wh=constants.IMG_RES)
+    dataset = PW3DEvalDataset(dataset_path, img_wh=constants.IMG_RES, selected_fnames=selected_fnames)
     print("Eval examples found:", len(dataset))
 
     # Metrics
