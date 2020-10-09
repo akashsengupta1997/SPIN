@@ -18,6 +18,8 @@ from utils.geometry import undo_keypoint_normalisation
 from utils.cam_utils import orthographic_project_torch
 from datasets.my_h36m_eval_dataset import H36MEvalDataset
 
+import subsets
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
@@ -247,16 +249,33 @@ def evaluate_single_in_multitasknet_h36m(model,
                 plt.imshow(vis_imgs[0])
                 plt.scatter(pred_vertices_projected2d[0, :, 0], pred_vertices_projected2d[0, :, 1], s=0.1, c='r')
 
-                plt.subplot(345)
-                plt.scatter(target_vertices[0, :, 0], target_vertices[0, :, 1], s=0.1, c='b')
-                plt.scatter(pred_vertices[0, :, 0], pred_vertices[0, :, 1], s=0.1, c='r')
+                plt.subplot(343)
+                plt.scatter(target_vertices[0, :, 0], target_vertices[0, :, 1], s=0.2, c='b')
+                # plt.scatter(pred_vertices[0, :, 0], pred_vertices[0, :, 1], s=0.1, c='r')
                 plt.gca().invert_yaxis()
                 plt.gca().set_aspect('equal', adjustable='box')
 
-                plt.subplot(346)
-                plt.scatter(target_vertices[0, :, 0], target_vertices[0, :, 1], s=0.1,
+                plt.subplot(344)
+                plt.scatter(target_vertices[0, :, 0], target_vertices[0, :, 1], s=0.2, c='b')
+                plt.scatter(pred_vertices[0, :, 0], pred_vertices[0, :, 1], s=0.1, c='r')
+                plt.gca().invert_yaxis()
+                plt.gca().set_aspect('equal', adjustable='box')
+                plt.text(-0.6, -0.8, s='PVE: {:.4f}'.format(pve_per_frame[-1]))
+
+                plt.subplot(345)
+                plt.scatter(target_vertices[0, :, 0], target_vertices[0, :, 1], s=0.2,
                             c='b')
                 plt.scatter(pred_vertices_scale_corrected[0, :, 0],
+                            pred_vertices_scale_corrected[0, :, 1], s=0.1,
+                            c='r')
+                plt.gca().invert_yaxis()
+                plt.gca().set_aspect('equal', adjustable='box')
+                plt.text(-0.6, -0.8, s='PVE-SC: {:.4f}'.format(pve_scale_corrected_per_frame[-1]))
+
+                plt.subplot(346)
+                plt.scatter(target_vertices[0, :, 2], target_vertices[0, :, 1], s=0.2,
+                            c='b')
+                plt.scatter(pred_vertices_scale_corrected[0, :, 2],
                             pred_vertices_scale_corrected[0, :, 1], s=0.1,
                             c='r')
                 plt.gca().invert_yaxis()
@@ -267,13 +286,20 @@ def evaluate_single_in_multitasknet_h36m(model,
                 plt.scatter(pred_vertices_pa[0, :, 0], pred_vertices_pa[0, :, 1], s=0.1, c='r')
                 plt.gca().invert_yaxis()
                 plt.gca().set_aspect('equal', adjustable='box')
+                plt.text(-0.6, -0.8, s='PVE-PA: {:.4f}'.format(pve_pa_per_frame[-1]))
 
                 plt.subplot(348)
+                plt.scatter(target_vertices[0, :, 2], target_vertices[0, :, 1], s=0.2, c='b')
+                plt.scatter(pred_vertices_pa[0, :, 2], pred_vertices_pa[0, :, 1], s=0.1, c='r')
+                plt.gca().invert_yaxis()
+                plt.gca().set_aspect('equal', adjustable='box')
+
+                plt.subplot(349)
                 plt.scatter(target_reposed_vertices[0, :, 0], target_reposed_vertices[0, :, 1], s=0.1, c='b')
                 plt.scatter(pred_reposed_vertices_sc[0, :, 0], pred_reposed_vertices_sc[0, :, 1], s=0.1, c='r')
                 plt.gca().set_aspect('equal', adjustable='box')
 
-                plt.subplot(349)
+                plt.subplot(3,4,10)
                 for j in range(num_joints3d):
                     plt.scatter(pred_joints_h36mlsp[0, j, 0], pred_joints_h36mlsp[0, j, 1], c='r')
                     plt.scatter(target_joints_h36mlsp[0, j, 0], target_joints_h36mlsp[0, j, 1], c='b')
@@ -282,7 +308,7 @@ def evaluate_single_in_multitasknet_h36m(model,
                 plt.gca().invert_yaxis()
                 plt.gca().set_aspect('equal', adjustable='box')
 
-                plt.subplot(3, 4, 10)
+                plt.subplot(3, 4, 11)
                 for j in range(num_joints3d):
                     plt.scatter(pred_joints_h36mlsp_sc[0, j, 0],
                                 pred_joints_h36mlsp_sc[0, j, 1], c='r')
@@ -295,7 +321,7 @@ def evaluate_single_in_multitasknet_h36m(model,
                 plt.gca().invert_yaxis()
                 plt.gca().set_aspect('equal', adjustable='box')
 
-                plt.subplot(3, 4, 11)
+                plt.subplot(3, 4, 12)
                 for j in range(num_joints3d):
                     plt.scatter(pred_joints_h36mlsp_pa[0, j, 0], pred_joints_h36mlsp_pa[0, j, 1], c='r')
                     plt.scatter(target_joints_h36mlsp[0, j, 0], target_joints_h36mlsp[0, j, 1], c='b')
@@ -410,8 +436,16 @@ if __name__ == '__main__':
     model.eval()
 
     # Setup evaluation dataset
+    selected_fnames = subsets.H36M_OCCLUDED_JOINTS
+    # selected_fnames = None
+    print('Selected fnames:', selected_fnames)
+    if selected_fnames is not None:
+        vis_every_n_batches = 1
+        batch_size = 1
+
     dataset_path = '/scratch2/as2562/datasets/H36M/eval'
-    dataset = H36MEvalDataset(dataset_path, protocol=args.protocol, img_wh=constants.IMG_RES, use_subset=False)
+    dataset = H36MEvalDataset(dataset_path, protocol=args.protocol, img_wh=constants.IMG_RES,
+                              use_subset=False, selected_fnames=selected_fnames)
     print("Eval examples found:", len(dataset))
 
     # Metrics
@@ -420,6 +454,8 @@ if __name__ == '__main__':
                'pve_scale_corrected', 'pve-t_scale_corrected', 'mpjpe_scale_corrected']
 
     save_path = '/data/cvfs/as2562/SPIN/evaluations/h36m_protocol{}'.format(str(args.protocol))
+    if selected_fnames is not None:
+        save_path += '_selected_fnames_occluded_joints'
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 

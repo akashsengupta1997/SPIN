@@ -137,7 +137,7 @@ class HMR(nn.Module):
         pred_pose = init_pose
         pred_shape = init_shape
         pred_cam = init_cam
-        for i in range(n_iter):
+        for i in range(n_iter):  # Why don't they use relu here? Code copied from HMR tensorflow, but tensorflow FC layers use relu by default.
             xc = torch.cat([xf, pred_pose, pred_shape, pred_cam],1)
             xc = self.fc1(xc)
             xc = self.drop1(xc)

@@ -9,7 +9,7 @@ from torchvision.transforms import Normalize
 import constants
 
 class H36MEvalDataset(Dataset):
-    def __init__(self, h36m_dir_path, protocol, img_wh, use_subset=False):
+    def __init__(self, h36m_dir_path, protocol, img_wh, use_subset=False, selected_fnames=None):
         super(H36MEvalDataset, self).__init__()
 
         # Paths
@@ -27,6 +27,17 @@ class H36MEvalDataset(Dataset):
         if use_subset:  # Evaluate on a subset of 200 samples
             all_indices = np.arange(len(self.frame_fnames))
             chosen_indices = np.random.choice(all_indices, 200, replace=False)
+            self.frame_fnames = self.frame_fnames[chosen_indices]
+            self.joints3d = self.joints3d[chosen_indices]
+            self.pose = self.pose[chosen_indices]
+            self.shape = self.shape[chosen_indices]
+
+        if selected_fnames is not None:  # Evaluate only given fnames
+            chosen_indices = []
+            for fname in selected_fnames:
+                chosen_indices.append(np.where(self.frame_fnames == fname)[0])
+                print(fname, np.where(self.frame_fnames == fname)[0])
+            chosen_indices = np.concatenate(chosen_indices, axis=0)
             self.frame_fnames = self.frame_fnames[chosen_indices]
             self.joints3d = self.joints3d[chosen_indices]
             self.pose = self.pose[chosen_indices]

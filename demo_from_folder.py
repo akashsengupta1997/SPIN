@@ -22,9 +22,9 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-checkpoint', default=None, help='Path to pretrained checkpoint')
-parser.add_argument('-in_folder', type=str, required=True, help='Path to input images folder.')
-parser.add_argument('-out_folder', type=str, default=None,
+parser.add_argument('--checkpoint', default=None, help='Path to pretrained checkpoint')
+parser.add_argument('--in_folder', type=str, required=True, help='Path to input images folder.')
+parser.add_argument('--out_folder', type=str, default=None,
                     help='Folder to save predictions in')
 parser.add_argument('--centred', action='store_true')
 parser.add_argument('--save_visuals', action='store_true')
@@ -168,8 +168,8 @@ if __name__ == '__main__':
         # Calculate camera parameters for rendering
         camera_translation = torch.stack([pred_camera[:, 1], pred_camera[:, 2],
                                           2 * constants.FOCAL_LENGTH / (
-                                                      constants.IMG_RES * pred_camera[:,
-                                                                          0] + 1e-9)], dim=-1)
+                                                  constants.IMG_RES * pred_camera[:,
+                                                                      0] + 1e-9)], dim=-1)
         camera_translation = camera_translation[0].cpu().numpy()
         pred_vertices = pred_vertices[0].cpu().numpy()
         pred_vertices_projected2d = pred_vertices_projected2d[0].cpu().numpy()
