@@ -442,7 +442,7 @@ if __name__ == '__main__':
     model.eval()
 
     # Setup evaluation dataset
-    selected_fnames = subsets.H36M_OCCLUDED_JOINTS
+    selected_fnames = subsets.PW3D_OCCLUDED_JOINTS
     # selected_fnames = None
     print('Selected fnames:', selected_fnames)
     if selected_fnames is not None:
