@@ -18,6 +18,7 @@ from utils.geometry import undo_keypoint_normalisation
 from utils.cam_utils import orthographic_project_torch
 from datasets.my_3dpw_eval_dataset import PW3DEvalDataset
 
+import subsets
 
 def evaluate_3dpw(model,
                   eval_dataset,
@@ -441,7 +442,15 @@ if __name__ == '__main__':
     model.eval()
 
     # Setup evaluation dataset
-    dataset_path = '/scratch2/as2562/datasets/3DPW/test'
+    selected_fnames = subsets.H36M_OCCLUDED_JOINTS
+    # selected_fnames = None
+    print('Selected fnames:', selected_fnames)
+    if selected_fnames is not None:
+        vis_every_n_batches = 1
+    else:
+        vis_every_n_batches = 1000
+
+    dataset_path = '/scratches/nazgul_2/as2562/datasets/3DPW/test'
     dataset = PW3DEvalDataset(dataset_path, img_wh=constants.IMG_RES)
     print("Eval examples found:", len(dataset))
 
@@ -451,6 +460,8 @@ if __name__ == '__main__':
                'pve_scale_corrected', 'pve-t_scale_corrected', 'mpjpe_scale_corrected']
 
     save_path = '/data/cvfs/as2562/SPIN/evaluations/3dpw'
+    if selected_fnames is not None:
+        save_path += '_selected_fnames_occluded_joints'
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
@@ -462,7 +473,7 @@ if __name__ == '__main__':
                   vis_save_path=save_path,
                   num_workers=4,
                   pin_memory=True,
-                  vis_every_n_batches=1000)
+                  vis_every_n_batches=vis_every_n_batches)
 
 
 

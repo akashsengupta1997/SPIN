@@ -10,7 +10,7 @@ import constants
 
 
 class PW3DEvalDataset(Dataset):
-    def __init__(self, pw3d_dir_path, img_wh):
+    def __init__(self, pw3d_dir_path, img_wh, selected_fnames=None):
         super(PW3DEvalDataset, self).__init__()
 
         # Paths
@@ -22,6 +22,17 @@ class PW3DEvalDataset(Dataset):
         self.pose = data['pose']
         self.shape = data['shape']
         self.gender = data['gender']
+
+        if selected_fnames is not None:  # Evaluate only given fnames
+            chosen_indices = []
+            for fname in selected_fnames:
+                chosen_indices.append(np.where(self.frame_fnames == fname)[0])
+                print(fname, np.where(self.frame_fnames == fname)[0])
+            chosen_indices = np.concatenate(chosen_indices, axis=0)
+            self.frame_fnames = self.frame_fnames[chosen_indices]
+            self.pose = self.pose[chosen_indices]
+            self.shape = self.shape[chosen_indices]
+            self.gender = self.gender[chosen_indices]
 
         self.cropped_frames_dir = cropped_frames_dir
         self.img_wh = img_wh
