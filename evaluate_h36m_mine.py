@@ -260,7 +260,7 @@ def evaluate_single_in_multitasknet_h36m(model,
                 plt.scatter(pred_vertices[0, :, 0], pred_vertices[0, :, 1], s=0.1, c='r')
                 plt.gca().invert_yaxis()
                 plt.gca().set_aspect('equal', adjustable='box')
-                plt.text(-0.6, -0.8, s='PVE: {:.4f}'.format(pve_per_frame[-1]))
+                plt.text(-0.6, -0.8, s='PVE: {:.4f}'.format(pve_per_frame[-1][0]))
 
                 plt.subplot(345)
                 plt.scatter(target_vertices[0, :, 0], target_vertices[0, :, 1], s=0.2,
@@ -270,7 +270,7 @@ def evaluate_single_in_multitasknet_h36m(model,
                             c='r')
                 plt.gca().invert_yaxis()
                 plt.gca().set_aspect('equal', adjustable='box')
-                plt.text(-0.6, -0.8, s='PVE-SC: {:.4f}'.format(pve_scale_corrected_per_frame[-1]))
+                plt.text(-0.6, -0.8, s='PVE-SC: {:.4f}'.format(pve_scale_corrected_per_frame[-1])[0])
 
                 plt.subplot(346)
                 plt.scatter(target_vertices[0, :, 2], target_vertices[0, :, 1], s=0.2,
@@ -286,7 +286,7 @@ def evaluate_single_in_multitasknet_h36m(model,
                 plt.scatter(pred_vertices_pa[0, :, 0], pred_vertices_pa[0, :, 1], s=0.1, c='r')
                 plt.gca().invert_yaxis()
                 plt.gca().set_aspect('equal', adjustable='box')
-                plt.text(-0.6, -0.8, s='PVE-PA: {:.4f}'.format(pve_pa_per_frame[-1]))
+                plt.text(-0.6, -0.8, s='PVE-PA: {:.4f}'.format(pve_pa_per_frame[-1])[0])
 
                 plt.subplot(348)
                 plt.scatter(target_vertices[0, :, 2], target_vertices[0, :, 1], s=0.2, c='b')
@@ -426,8 +426,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Device
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     model = hmr(config.SMPL_MEAN_PARAMS).to(device)
