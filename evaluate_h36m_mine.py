@@ -442,6 +442,9 @@ if __name__ == '__main__':
     if selected_fnames is not None:
         vis_every_n_batches = 1
         batch_size = 1
+    else:
+        vis_every_n_batches = 100
+        batch_size = 8
 
     dataset_path = '/scratch2/as2562/datasets/H36M/eval'
     dataset = H36MEvalDataset(dataset_path, protocol=args.protocol, img_wh=constants.IMG_RES,
@@ -462,13 +465,13 @@ if __name__ == '__main__':
     # Run evaluation
     evaluate_single_in_multitasknet_h36m(model=model,
                                          eval_dataset=dataset,
-                                         batch_size=8,
+                                         batch_size=batch_size,
                                          metrics=metrics,
                                          device=device,
                                          save_path=save_path,
                                          num_workers=args.num_workers,
                                          pin_memory=True,
-                                         vis_every_n_batches=100)
+                                         vis_every_n_batches=vis_every_n_batches)
 
 
 
