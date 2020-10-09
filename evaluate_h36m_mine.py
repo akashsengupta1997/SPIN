@@ -243,19 +243,23 @@ def evaluate_single_in_multitasknet_h36m(model,
 
                 plt.figure(figsize=(16, 12))
                 plt.subplot(341)
+                plt.gca().axis('off')
                 plt.imshow(vis_imgs[0])
 
                 plt.subplot(342)
+                plt.gca().axis('off')
                 plt.imshow(vis_imgs[0])
                 plt.scatter(pred_vertices_projected2d[0, :, 0], pred_vertices_projected2d[0, :, 1], s=0.1, c='r')
 
                 plt.subplot(343)
+                plt.gca().axis('off')
                 plt.scatter(target_vertices[0, :, 0], target_vertices[0, :, 1], s=0.2, c='b')
                 # plt.scatter(pred_vertices[0, :, 0], pred_vertices[0, :, 1], s=0.1, c='r')
                 plt.gca().invert_yaxis()
                 plt.gca().set_aspect('equal', adjustable='box')
 
                 plt.subplot(344)
+                plt.gca().axis('off')
                 plt.scatter(target_vertices[0, :, 0], target_vertices[0, :, 1], s=0.2, c='b')
                 plt.scatter(pred_vertices[0, :, 0], pred_vertices[0, :, 1], s=0.1, c='r')
                 plt.gca().invert_yaxis()
@@ -263,6 +267,7 @@ def evaluate_single_in_multitasknet_h36m(model,
                 plt.text(-0.6, -0.8, s='PVE: {:.4f}'.format(pve_per_frame[-1][0]))
 
                 plt.subplot(345)
+                plt.gca().axis('off')
                 plt.scatter(target_vertices[0, :, 0], target_vertices[0, :, 1], s=0.2,
                             c='b')
                 plt.scatter(pred_vertices_scale_corrected[0, :, 0],
@@ -273,6 +278,7 @@ def evaluate_single_in_multitasknet_h36m(model,
                 plt.text(-0.6, -0.8, s='PVE-SC: {:.4f}'.format(pve_scale_corrected_per_frame[-1][0]))
 
                 plt.subplot(346)
+                plt.gca().axis('off')
                 plt.scatter(target_vertices[0, :, 2], target_vertices[0, :, 1], s=0.2,
                             c='b')
                 plt.scatter(pred_vertices_scale_corrected[0, :, 2],
@@ -282,6 +288,7 @@ def evaluate_single_in_multitasknet_h36m(model,
                 plt.gca().set_aspect('equal', adjustable='box')
 
                 plt.subplot(347)
+                plt.gca().axis('off')
                 plt.scatter(target_vertices[0, :, 0], target_vertices[0, :, 1], s=0.1, c='b')
                 plt.scatter(pred_vertices_pa[0, :, 0], pred_vertices_pa[0, :, 1], s=0.1, c='r')
                 plt.gca().invert_yaxis()
@@ -289,17 +296,20 @@ def evaluate_single_in_multitasknet_h36m(model,
                 plt.text(-0.6, -0.8, s='PVE-PA: {:.4f}'.format(pve_pa_per_frame[-1][0]))
 
                 plt.subplot(348)
+                plt.gca().axis('off')
                 plt.scatter(target_vertices[0, :, 2], target_vertices[0, :, 1], s=0.2, c='b')
                 plt.scatter(pred_vertices_pa[0, :, 2], pred_vertices_pa[0, :, 1], s=0.1, c='r')
                 plt.gca().invert_yaxis()
                 plt.gca().set_aspect('equal', adjustable='box')
 
                 plt.subplot(349)
+                plt.gca().axis('off')
                 plt.scatter(target_reposed_vertices[0, :, 0], target_reposed_vertices[0, :, 1], s=0.1, c='b')
                 plt.scatter(pred_reposed_vertices_sc[0, :, 0], pred_reposed_vertices_sc[0, :, 1], s=0.1, c='r')
                 plt.gca().set_aspect('equal', adjustable='box')
 
                 plt.subplot(3,4,10)
+                plt.gca().axis('off')
                 for j in range(num_joints3d):
                     plt.scatter(pred_joints_h36mlsp[0, j, 0], pred_joints_h36mlsp[0, j, 1], c='r')
                     plt.scatter(target_joints_h36mlsp[0, j, 0], target_joints_h36mlsp[0, j, 1], c='b')
@@ -309,6 +319,7 @@ def evaluate_single_in_multitasknet_h36m(model,
                 plt.gca().set_aspect('equal', adjustable='box')
 
                 plt.subplot(3, 4, 11)
+                plt.gca().axis('off')
                 for j in range(num_joints3d):
                     plt.scatter(pred_joints_h36mlsp_sc[0, j, 0],
                                 pred_joints_h36mlsp_sc[0, j, 1], c='r')
@@ -322,6 +333,7 @@ def evaluate_single_in_multitasknet_h36m(model,
                 plt.gca().set_aspect('equal', adjustable='box')
 
                 plt.subplot(3, 4, 12)
+                plt.gca().axis('off')
                 for j in range(num_joints3d):
                     plt.scatter(pred_joints_h36mlsp_pa[0, j, 0], pred_joints_h36mlsp_pa[0, j, 1], c='r')
                     plt.scatter(target_joints_h36mlsp[0, j, 0], target_joints_h36mlsp[0, j, 1], c='b')
@@ -329,6 +341,11 @@ def evaluate_single_in_multitasknet_h36m(model,
                     plt.text(target_joints_h36mlsp[0, j, 0], target_joints_h36mlsp[0, j, 1], s=str(j))
                 plt.gca().invert_yaxis()
                 plt.gca().set_aspect('equal', adjustable='box')
+
+                plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
+                plt.margins(0, 0)
+                plt.gca().xaxis.set_major_locator(plt.NullLocator())
+                plt.gca().yaxis.set_major_locator(plt.NullLocator())
 
                 # plt.show()
                 save_fig_path = os.path.join(save_path, fnames[0])
